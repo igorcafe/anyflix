@@ -1,0 +1,13 @@
+<h1>{{ .Meta.Name }} ({{ .Meta.ReleaseInfo }})</h1>
+
+<img width="300px" src="{{ .Meta.Poster }}"><br>
+
+{{ if eq .Meta.Type "movie" }}
+	<a href="/streams/movie/{{ .ID }}">Go to streams</a><br>
+{{ else }}
+	{{ range .Meta.Videos }}
+	{{ if .Season }}
+	<a href="/streams/series/{{ .ID }}">{{ .Season }}x{{ .Number }} - {{ .Name }}</a><br>
+	{{ end }}
+	{{ end }}
+{{ end }}

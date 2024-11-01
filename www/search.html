@@ -1,0 +1,6 @@
+{{ range . }}
+<a href="/details/{{ .Type }}/{{ .ID }}">
+  {{ .Name }}<br>
+  <img src="{{ .Poster }}"><br>
+</a>
+{{ end }}

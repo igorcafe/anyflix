@@ -1,0 +1,8 @@
+<html>
+{{ range .Streams }}
+{{ .Name }}<br>
+{{ .Title }}<br>
+<a href="/watch/{{ $.Kind }}/{{ $.ID }}/{{ .InfoHash }}/{{ .FileIdx }}">Watch</a><br>
+<br>
+{{ end }}
+</html>
