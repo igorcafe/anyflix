@@ -18,16 +18,16 @@ func DefaultAPI() API {
 }
 
 type searchResponse struct {
-	Subtitles []Subtitile `json:"subtitles"`
+	Subtitles []Sub `json:"subtitles"`
 }
 
-type Subtitile struct {
+type Sub struct {
 	URL      string `json:"url"`
 	Lang     string `json:"lang"`
 	Encoding string `json:"SubEncoding"`
 }
 
-func (h API) Search(kind, imdbID, fileHash string) ([]Subtitile, error) {
+func (h API) Search(kind, imdbID, fileHash string) ([]Sub, error) {
 	slog.Debug("opensubsService.search", "kind", kind, "imdbID", imdbID, "fileHash", fileHash)
 
 	var subs searchResponse

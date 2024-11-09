@@ -134,17 +134,26 @@ func main() {
 			return
 		}
 
-		log.Printf("subs: %#+v", subs)
+		subs2 := []opensubs.Sub{}
+		for _, sub := range subs {
+			if sub.Lang == "pob" || sub.Lang == "eng" {
+				subs2 = append(subs2, sub)
+			}
+		}
+
+		subs = subs2
+
+		slog.Debug("filtered subs", "subs", subs)
 
 		buf := &bytes.Buffer{}
 		err = template.
 			Must(template.New("").Parse(cmdTmpl)).
 			Execute(buf, struct {
-				Subtitles []opensubs.Subtitile
+				Subtitles []opensubs.Sub
 				StreamURL string
 			}{
 				StreamURL: url,
-				Subtitles: nil,
+				Subtitles: subs,
 			})
 
 		args := strings.Fields(buf.String())
