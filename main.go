@@ -115,6 +115,7 @@ func main() {
 
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
+			slog.Error("invalid fileIdx", "err", err)
 			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
 			return
 		}
@@ -200,7 +201,8 @@ func main() {
 
 		streams, err := torrentSource.Find(kind, imdbID)
 		if err != nil {
-			panic(err)
+			slog.Error("failed to find streams", "err", err)
+			return
 		}
 
 		err = json.NewEncoder(w).Encode(streams) // TODO
@@ -210,8 +212,8 @@ func main() {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			// TODO
-			http.Error(w, "", http.StatusBadRequest)
+			slog.Error("invalid fileIdx", "err", err)
+			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
 			return
 		}
 		torrentService.StreamFileHTTP(w, r, infoHash, fileIdx)
@@ -221,6 +223,7 @@ func main() {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
+			slog.Error("invalid fileIdx", "err", err)
 			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
 			return
 		}
