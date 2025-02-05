@@ -134,6 +134,7 @@ func main() {
 
 		subs, err := opensubtitles.Search(kind, imdbID, hash)
 		if err != nil {
+			slog.Error("failed to search subtitles", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
