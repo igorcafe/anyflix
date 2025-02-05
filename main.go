@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/igorcafe/anyflix/meta"
 	"github.com/igorcafe/anyflix/opensubs"
@@ -37,6 +38,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	time.Sleep(time.Second * time.Second)
 
 	mux := http.NewServeMux()
 
