@@ -6,12 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -20,13 +24,6 @@ import (
 	"github.com/igorcafe/anyflix/source"
 	"github.com/igorcafe/anyflix/torrent"
 )
-
-const cmdTmpl = `mpv
-{{ .StreamURL }}
-{{ range .Subtitles }}
---sub-file={{ .URL }}
-{{ end }}
-`
 
 //go:embed www/*
 var www embed.FS
@@ -46,9 +43,20 @@ func main() {
 	}
 	slog.Info("started torrent service")
 
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mux := http.NewServeMux()
 
 	www, err := fs.Sub(www, "www")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	slog.Info("loading config")
+	config, err := ConfigLoad()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -115,26 +123,25 @@ func main() {
 			return
 		}
 
-		subs2 := []opensubs.Sub{}
-		for _, sub := range subs {
-			if sub.Lang == "pob" {
-				subs2 = append(subs2, sub)
-			}
+		subs = slices.DeleteFunc(subs, func(sub opensubs.Sub) bool {
+			return !slices.Contains(config.SubLangs, sub.Lang)
+		})
+
+		subsDir := filepath.Join(cacheDir, "subs")
+		_ = os.MkdirAll(subsDir, 0700)
+
+		subPaths, err := downloadSubtitles(subsDir, subs)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-
-		subs = subs2
-
-		slog.Debug("filtered subs", "subs", subs)
 
 		buf := &bytes.Buffer{}
 		err = template.
-			Must(template.New("").Parse(cmdTmpl)).
-			Execute(buf, struct {
-				Subtitles []opensubs.Sub
-				StreamURL string
-			}{
-				StreamURL: url,
-				Subtitles: subs,
+			Must(template.New("").Parse(config.PlayerCmd)).
+			Execute(buf, map[string]any{
+				"URL":  url,
+				"Subs": subPaths,
 			})
 
 		args := strings.Fields(buf.String())
@@ -295,4 +302,45 @@ func main() {
 	slog.Info("starting anyflix at " + baseURL)
 	err = http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), mux)
 	log.Panic(err)
+}
+
+func downloadSubtitles(dir string, subs []opensubs.Sub) ([]string, error) {
+	paths := []string{}
+
+	for _, sub := range subs {
+		func() {
+			filePath := filepath.Join(dir, path.Base(sub.URL))
+			_, err := os.Stat(filePath)
+			if err == nil {
+				slog.Info("subtitle already downloaded", "url", sub.URL)
+				paths = append(paths, filePath)
+				return
+			}
+
+			resp, err := http.Get(sub.URL)
+			if err != nil {
+				slog.Error("failed to download subtitle", "url", sub.URL, "err", err)
+				return
+			}
+			defer resp.Body.Close()
+
+			f, err := os.Create(filePath)
+			if err != nil {
+				slog.Error("failed to download subtitle", "url", sub.URL, "err", err)
+				return
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, resp.Body)
+			if err != nil {
+				slog.Error("failed to download subtitle", "url", sub.URL, "err", err)
+				return
+			}
+
+			slog.Debug("saved subtitle", "filePath", filePath, "url", sub.URL)
+			paths = append(paths, filePath)
+		}()
+	}
+
+	return paths, nil
 }

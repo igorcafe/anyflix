@@ -107,8 +107,6 @@ func (h Service) StreamFileHTTP(w http.ResponseWriter, r *http.Request, infoHash
 	torrent, _ := h.client.AddTorrentInfoHash(infohash.FromHexString(infoHash))
 	<-torrent.GotInfo()
 
-	slog.Debug("torrent info ready", "infoHash", infoHash)
-
 	// TODO: let it panic?
 	file := torrent.Files()[fileIdx]
 
