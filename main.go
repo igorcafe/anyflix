@@ -48,15 +48,6 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-	// 	http.ServeFile(w, r, "./www/home.html")
-	// })
-
-	// mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-	// 	http.Fil
-	// 	http.ServeFile(w, r, "./www/home.html")
-	// })
-
 	www, err := fs.Sub(www, "www")
 	if err != nil {
 		log.Fatal(err)
@@ -67,45 +58,6 @@ func main() {
 	// mux.Handle("GET /", http.FileServerFS(www))
 	mux.Handle("GET /", http.FileServer(http.Dir("./www")))
 
-	// mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {
-	// 	q := r.URL.Query()
-	// 	res, err := metaAPI.Search(q.Get("type"), q.Get("query"))
-	// 	if err != nil {
-	// 		http.Error(w, "", http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	tmpl := template.Must(template.ParseFiles("./www/search.html"))
-	// 	err = tmpl.Execute(w, res)
-	// 	if err != nil {
-	// 		slog.Error("", "err", err)
-	// 		return
-	// 	}
-	// })
-
-	// mux.HandleFunc("GET /details/{type}/{id}", func(w http.ResponseWriter, r *http.Request) {
-	// 	id := r.PathValue("id")
-	// 	kind := r.PathValue("type")
-
-	// 	metadata, err := metaAPI.Get(kind, id)
-	// 	if err != nil {
-	// 		slog.Error("", "err", err)
-	// 		return
-	// 	}
-
-	// 	tmpl := template.Must(template.ParseFiles("./www/details.html"))
-
-	// 	err = tmpl.Execute(w, struct {
-	// 		ID   string
-	// 		Meta meta.Meta
-	// 	}{
-	// 		ID:   id,
-	// 		Meta: metadata,
-	// 	})
-	// 	if err != nil {
-	// 		slog.Error("", "err", err)
-	// 		return
-	// 	}
-	// })
 
 	mux.HandleFunc("GET /streams/{type}/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
