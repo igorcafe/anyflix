@@ -49,10 +49,10 @@ type Video struct {
 }
 
 func (s API) Get(kind, id string) (Meta, error) {
-	slog.Debug("meta.API.Get", "kind", kind, "id", id)
 	var res getMetaResponse
 	url := s.BaseURL + "/meta/" + kind + "/" + id + ".json"
 
+	slog.Debug("meta.API.Get", "kind", kind, "id", id, "url", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		slog.Error("search meta",

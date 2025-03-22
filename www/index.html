@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="/alpine.min.js"></script>
 </head>
 <body x-data="search">
   <div id="container">
@@ -11,7 +11,7 @@
         id="search-input"
         type="text"
         x-model="query"
-        @input.debounce="fetchAllMetas()"
+        @input.debounce.1000ms="fetchAllMetas()"
         autofocus />
     </div>
     <div x-show="showResults">
@@ -32,7 +32,7 @@
         <h2>series</h2>
         <div class="content-list">
           <template x-for="s in series">
-            <a x-bind:href="`/details/?type=series&id=${m.id}`" class="content-card">
+            <a x-bind:href="`/details/?type=series&id=${s.id}`" class="content-card">
               <div class="content-card-img-container">
                 <img x-bind:src="s.poster">
               </div>
@@ -127,10 +127,21 @@
             query: '',
             movies: [],
             series: [],
+
+            init() {
+                const params = new URLSearchParams(window.location.search)
+                this.query = params.get('q') ?? ''
+                this.fetchAllMetas()
+            },
+
             async fetchAllMetas() {
                 if (this.query.length < 3) {
                     return
                 }
+
+                const url = new URL(window.location.href)
+                url.searchParams.set('q', this.query)
+                window.history.pushState({ path: url.href }, '', url.href)
 
                 this.showResults = true
 
@@ -149,67 +160,6 @@
                 }
 
                 return await resp.json()
-                // return {
-                //     "metas": [
-                //         {
-                //             "id": "1",
-                //             "type": "movie",
-                //             "name": "Inception",
-                //             "releaseInfo": "2010",
-                //             "poster": "http://example.com/posters/inception.jpg",
-                //             "videos": [
-                //                 {
-                //                     "id": "v1",
-                //                     "name": "Inception Trailer",
-                //                     "season": 0,
-                //                     "number": 1
-                //                 }
-                //             ]
-                //         },
-                //         {
-                //             "id": "2",
-                //             "type": "tv_show",
-                //             "name": "Breaking Bad",
-                //             "releaseInfo": "2008-2013",
-                //             "poster": "http://example.com/posters/breaking_bad.jpg",
-                //             "videos": [
-                //                 {
-                //                     "id": "v2",
-                //                     "name": "Pilot",
-                //                     "season": 1,
-                //                     "number": 1
-                //                 },
-                //                 {
-                //                     "id": "v3",
-                //                     "name": "Cat's in the Bag...",
-                //                     "season": 1,
-                //                     "number": 2
-                //                 }
-                //             ]
-                //         },
-                //         {
-                //             "id": "3",
-                //             "type": "documentary",
-                //             "name": "Planet Earth",
-                //             "releaseInfo": "2006",
-                //             "poster": "http://example.com/posters/planet_earth.jpg",
-                //             "videos": [
-                //                 {
-                //                     "id": "v4",
-                //                     "name": "From Pole to Pole",
-                //                     "season": 1,
-                //                     "number": 1
-                //                 },
-                //                 {
-                //                     "id": "v5",
-                //                     "name": "Mountains",
-                //                     "season": 1,
-                //                     "number": 2
-                //                 }
-                //             ]
-                //         }
-                //     ]
-                // } 
             }
         }))
     })

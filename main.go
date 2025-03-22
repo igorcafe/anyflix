@@ -53,7 +53,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	mux.Handle("GET /", http.FileServerFS(www))
+	host := "localhost"
+	port := 2025
+	baseURL := fmt.Sprintf("http://%s:%d", host, port)
+
 
 	// use it instead for faster developing
 	// mux.Handle("GET /", http.FileServer(http.Dir("./www")))
@@ -92,7 +95,8 @@ func main() {
 		}
 
 		url := fmt.Sprintf(
-			"http://localhost:3000/api/torrent/%s/%d/stream",
+			"%s/api/torrent/%s/%d/stream",
+			baseURL,
 			infoHash,
 			fileIdx,
 		)
@@ -239,6 +243,11 @@ func main() {
 		err = json.NewEncoder(w).Encode(stat) // TODO
 	})
 
+	mux.HandleFunc("GET /api/torrent/{infoHash}/drop", func(w http.ResponseWriter, r *http.Request) {
+		infoHash := r.PathValue("infoHash")
+		torrentService.Drop(infoHash)
+	})
+
 	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/hash", func(w http.ResponseWriter, r *http.Request) {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
@@ -282,7 +291,7 @@ func main() {
 	})
 	//mux.HandleFunc("GET /api/opensubs/{id}", subsService.handleFindSubByID)
 
-	slog.Info("starting anyflix at http://localhost:3000")
-	err = http.ListenAndServe(":3000", mux)
+	slog.Info("starting anyflix at " + baseURL)
+	err = http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), mux)
 	log.Panic(err)
 }

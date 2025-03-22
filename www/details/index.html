@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="/alpine.min.js"></script>
 </head>
 <body x-data="details">
   <div id="background">
@@ -26,16 +26,18 @@
       </div>
 
       <div x-text="details.description"></div>
-      <div>
-        <div x-show="details.genre?.length">GENRES</div>
+
+      <div x-show="details.genre?.length">
+        <div>GENRES</div>
         <div class="chips">
           <template x-for="g in details.genre">
             <div class="chip" x-text="g"></div>
           </template>
         </div>
       </div>
-      <div>
-        <div x-show="details.director?.length">DIRECTORS</div>
+
+      <div x-show="details.director?.length">
+        <div>DIRECTORS</div>
         <div class="chips">
           <template x-for="d in details.director">
             <div class="chip" x-text="d"></div>
@@ -46,52 +48,73 @@
       <!-- streams -->
       <!-- <div x-text="streams"></div> -->
     </div>
-    <div id="streams-container">
-      <!-- <div x-text="streams"></div> -->
-      <div id="streams">
-
-        <template x-for="s in streams">
-          <a
-            href="#"
-            class="stream"
-            @click="selectedStream = s"
-            x-data="{names: s.name.split('\n'), titles: s.title.split('\n')}">
-            <div>
-              <div x-text="names[0]"></div>
-              <div x-text="names[1]"></div>
-            </div>
-            <div>
-              <div x-text="titles[0]"></div>
-              <div x-text="titles[1]"></div>
-            </div>
-          </a>
-        </template>
-      </div>
-      <template x-if="selectedStream">
-        <div id="selected-stream" @click="selectedStream = null">
-          <div
-            id="stream-options"
-            @click.stop=""
-            x-data="{magnet: magnetLink(), url: streamURL()}">
-            <label>Magnet link: <input type="text" x-model="magnet"></label>
-            <label>Stream URL: <input type="text" x-model="url"></label>
-            <!-- <label>Subtitle languages: Portuguese (Brazil), Portuguese (Portugal), English (US) [TODO] -->
-            <!-- </label> -->
-
-            <button x-data="{text: 'play in mpv'}" x-text="text" @click="launchPlayer(); text='loading...'"></button>
-            <button @click="window.open(url, '_blank'); startStatTimeout()">play in the browser</button>
-            <button
-              x-data="{txt: 'download'}"
-              @click="download(); txt='downloading...'"
-              x-text="txt"></button>
-
-            <template x-if="stat">
-              <div x-text="`${(100 * stat.bytesComplete / stat.bytesTotal).toFixed(1)}% - pending: ${stat.pendingPeers} - connected: ${stat.connectedSeeders} - active: ${stat.activePeers}`"></div>
-            </template>
-          </div>
+    <template x-if="streams.length">
+      <div id="streams-container">
+        <div id="streams">
+          <template x-for="s in streams">
+            <a
+              href="#"
+              class="stream"
+              @click="stream = s"
+              x-data="{names: s.name.split('\n'), titles: s.title.split('\n')}">
+              <div>
+                <div x-text="names[0]"></div>
+                <div x-text="names[1]"></div>
+              </div>
+              <div>
+                <div x-text="titles[0]"></div>
+                <div x-text="titles[1]"></div>
+              </div>
+            </a>
+          </template>
         </div>
-      </template>
-    </div>
+      </div>
+    </template>
+
+    <template x-if="!streams.length && details.videos?.length">
+      <div id="streams-container">
+        <div id="streams">
+          <template x-for="v in details.videos.filter(v => v.season > 0)">
+            <a
+              href="#"
+              class="stream"
+              @click="video = v">
+              <div x-text="`S${v.season.toString().padStart(2, '0')}E${v.number.toString().padStart(2, '0')}`"></div>
+
+              <div x-text="v.name"></div>
+            </a>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="stream">
+      <div id="selected-stream" @click="stream = null">
+        <div
+          id="stream-options"
+          @click.stop=""
+          x-data="{magnet: magnetLink(), url: streamURL()}">
+          <label>Magnet link: <input type="text" x-model="magnet"></label>
+          <label>Stream URL: <input type="text" x-model="url"></label>
+
+          <div class="buttons">
+          <button x-data="{text: 'watch in mpv'}" x-text="text" @click="launchPlayer(); text='loading...'"></button>
+          <button @click="playInBrowser()">watch here</button>
+          <button
+            x-data="{txt: 'download'}"
+            @click="download(); txt='downloading...'"
+            x-text="txt"></button>
+          </div>
+
+          <template x-if="stat">
+            <div>
+              <div x-text="`${stat.bytesComplete && (100 * stat.bytesComplete / stat.bytesTotal).toFixed(1)}% - pending: ${stat.pendingPeers} - connected: ${stat.connectedSeeders} - active: ${stat.activePeers}`"></div>
+              <div x-text="`↓ ${(stat.bytesComplete / 1024 / 1024).toFixed(0)} MB - ↑ ${(stat.bytesWritten / 1024 / 1024).toFixed(0)} MB`"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
   </div>
   <style>
     * {
@@ -191,7 +214,7 @@
         background-color: #111a;
         display: flex;
         flex-direction: column;
-        gap: 35px;
+        gap: 15px;
         width: 550px;
         height: 90vh;
         font-size: 16px;
@@ -225,11 +248,19 @@
         height: 400px;
         background-color: #555;
         padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
     }
 
     #stream-options {
         display: flex;
         flex-direction: column;
+        gap: 10px;
+    }
+
+    #stream-options .buttons {
+        display: flex;
         gap: 10px;
     }
 
@@ -251,18 +282,39 @@
         Alpine.data('details', () => ({
             type: '',
             id: '',
+            baseURL: '',
             details: {},
             streams: [],
-            selectedStream: null,
+            stream: null,
+            video: null,
             stat: null,
 
             init() {
+                this.baseURL = window.location.origin
+
                 const params = new URLSearchParams(window.location.search)
                 this.type = params.get('type')
                 this.id = params.get('id')
 
                 this.getDetails()
-                this.getStreams()
+                if (this.type === 'movie') {
+                    this.getStreams()
+                }
+
+                this.$watch('stream', (_, oldStream) => {
+                    if (this.stream) {
+                        this.startStatTimeout()
+                    } else if(this.stat?.bytesComplete === 0) {
+                        this.dropTorrent(oldStream.infoHash)
+                    }
+                    this.stat = null
+                })
+
+                this.$watch('video', () => {
+                    if (this.video) {
+                        this.getStreams()
+                    }
+                })
             },
 
             async getDetails() {
@@ -274,45 +326,54 @@
             },
 
             async getStreams() {
-                const resp = await fetch(`/api/streams/${this.type}/${this.id}`)
+                let url = `/api/streams/${this.type}/${this.id}`
+                if (this.video) {
+                    url += `:${this.video.season}:${this.video.number}`
+                }
+                const resp = await fetch(url)
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
                 this.streams = await resp.json()
             },
 
+            playInBrowser() {
+                this.startStatTimeout()
+                window.open(url, '_blank')
+            },
+
             async launchPlayer() {
-                const { infoHash, fileIdx } = this.selectedStream
+                this.startStatTimeout()
+                const { infoHash, fileIdx } = this.stream
                 const resp = await fetch(`/watch/${this.type}/${this.id}/${infoHash}/${fileIdx}`)
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
-                this.startStatTimeout()
             },
 
             magnetLink() {
-                const { infoHash, title } = this.selectedStream
+                const { infoHash, title } = this.stream
                 return `magnet:?xt=urn:btih:${infoHash}&dn=${title}&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopentor.org%3A2710&tr=udp%3A%2F%2Ftracker.ccc.de%3A80&tr=udp%3A%2F%2Ftracker.blackunicorn.xyz%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969`
             },
 
             streamURL() {
-                const { infoHash, fileIdx } = this.selectedStream
-                return `http://localhost:3000/api/torrent/${infoHash}/${fileIdx}/stream`
+                const { infoHash, fileIdx } = this.stream
+                return `${this.baseURL}/api/torrent/${infoHash}/${fileIdx}/stream`
             },
 
             async download() {
-                const { infoHash, fileIdx } = this.selectedStream
+                this.startStatTimeout()
+
+                const { infoHash, fileIdx } = this.stream
                 const resp = await fetch(`/api/torrent/${infoHash}/${fileIdx}/download`)
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
-
-                this.startStatTimeout()
             },
 
             startStatTimeout() {
                 const myTimeout = () => {
-                    if (!this.selectedStream) {
+                    if (!this.stream) {
                         return
                     }
 
@@ -325,12 +386,34 @@
             },
 
             async getStat() {
-                const { infoHash, fileIdx } = this.selectedStream
+                if (!this.stat) {
+                    this.stat = {
+                        "bytesComplete": 0,
+                        "bytesTotal": 0,
+                        "totalPeers": 0,
+                        "pendingPeers": 0,
+                        "activePeers": 0,
+                        "connectedSeeders": 0,
+                        "halfOpenPeers": 0,
+                        "piecesComplete": 0,
+                        "bytesWritten": 0,
+                        "bytesRead": 0,
+                    }
+                }
+
+                const { infoHash, fileIdx } = this.stream
                 const resp = await fetch(`/api/torrent/${infoHash}/${fileIdx}/stat`)
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
                 this.stat = await resp.json()
+            },
+
+            async dropTorrent(infoHash) {
+                const resp = await fetch(`/api/torrent/${infoHash}/drop`)
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
             }
         }))
     })

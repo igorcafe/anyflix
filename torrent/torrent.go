@@ -29,6 +29,7 @@ func DefaultService() (Service, error) {
 	}
 
 	config := torrent.NewDefaultClientConfig()
+	config.Seed = true
 	config.DataDir = filepath.Join(cache, "anyflix")
 
 	err = os.MkdirAll(config.DataDir, os.ModePerm)
@@ -62,6 +63,13 @@ type Stat struct {
 	ConnectedSeeders int   `json:"connectedSeeders"`
 	HalfOpenPeers    int   `json:"halfOpenPeers"`
 	PiecesComplete   int   `json:"piecesComplete"`
+	BytesWritten     int64 `json:"bytesWritten"`
+	BytesRead        int64 `json:"bytesRead"`
+}
+
+func (h Service) Drop(infoHash string) {
+	torrent, _ := h.client.AddTorrentInfoHash(infohash.FromHexString(infoHash))
+	torrent.Drop()
 }
 
 func (h Service) Stat(infoHash string, fileIdx int) Stat {
@@ -72,6 +80,7 @@ func (h Service) Stat(infoHash string, fileIdx int) Stat {
 	states := file.State()
 
 	stats := torrent.Stats()
+
 	stat := Stat{
 		BytesComplete:    0,
 		BytesTotal:       file.Length(),
@@ -81,6 +90,8 @@ func (h Service) Stat(infoHash string, fileIdx int) Stat {
 		ConnectedSeeders: stats.ConnectedSeeders,
 		HalfOpenPeers:    stats.HalfOpenPeers,
 		PiecesComplete:   stats.PiecesComplete,
+		BytesWritten:     stats.BytesWrittenData.Int64(),
+		BytesRead:        stats.BytesReadUsefulData.Int64(),
 	}
 
 	for _, state := range states {
