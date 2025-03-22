@@ -53,11 +53,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_ = www
+	mux.Handle("GET /", http.FileServerFS(www))
 
-	// mux.Handle("GET /", http.FileServerFS(www))
-	mux.Handle("GET /", http.FileServer(http.Dir("./www")))
-
+	// use it instead for faster developing
+	// mux.Handle("GET /", http.FileServer(http.Dir("./www")))
 
 	mux.HandleFunc("GET /streams/{type}/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
