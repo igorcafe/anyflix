@@ -57,6 +57,7 @@ func main() {
 	port := 2025
 	baseURL := fmt.Sprintf("http://%s:%d", host, port)
 
+	mux.Handle("GET /", http.FileServerFS(www))
 
 	// use it instead for faster developing
 	// mux.Handle("GET /", http.FileServer(http.Dir("./www")))
