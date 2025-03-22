@@ -161,7 +161,7 @@ func main() {
 
 		subs2 := []opensubs.Sub{}
 		for _, sub := range subs {
-			if sub.Lang == "pob" || sub.Lang == "eng" {
+			if sub.Lang == "pob" {
 				subs2 = append(subs2, sub)
 			}
 		}
@@ -261,6 +261,31 @@ func main() {
 			return
 		}
 		torrentService.StreamFileHTTP(w, r, infoHash, fileIdx)
+	})
+
+	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/download", func(w http.ResponseWriter, r *http.Request) {
+		infoHash := r.PathValue("infoHash")
+		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
+		if err != nil {
+			slog.Error("invalid fileIdx", "err", err)
+			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
+			return
+		}
+		torrentService.DownloadFile(infoHash, fileIdx)
+	})
+
+	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/stat", func(w http.ResponseWriter, r *http.Request) {
+		infoHash := r.PathValue("infoHash")
+		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
+		if err != nil {
+			slog.Error("invalid fileIdx", "err", err)
+			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
+			return
+		}
+
+		stat := torrentService.Stat(infoHash, fileIdx)
+
+		err = json.NewEncoder(w).Encode(stat) // TODO
 	})
 
 	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/hash", func(w http.ResponseWriter, r *http.Request) {

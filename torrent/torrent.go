@@ -45,6 +45,53 @@ func DefaultService() (Service, error) {
 	return svc, nil
 }
 
+func (h Service) DownloadFile(infoHash string, fileIdx int) {
+	torrent, _ := h.client.AddTorrentInfoHash(infohash.FromHexString(infoHash))
+	<-torrent.GotInfo()
+
+	file := torrent.Files()[fileIdx]
+	file.Download()
+}
+
+type Stat struct {
+	BytesComplete    int64 `json:"bytesComplete"`
+	BytesTotal       int64 `json:"bytesTotal"`
+	TotalPeers       int   `json:"totalPeers"`
+	PendingPeers     int   `json:"pendingPeers"`
+	ActivePeers      int   `json:"activePeers"`
+	ConnectedSeeders int   `json:"connectedSeeders"`
+	HalfOpenPeers    int   `json:"halfOpenPeers"`
+	PiecesComplete   int   `json:"piecesComplete"`
+}
+
+func (h Service) Stat(infoHash string, fileIdx int) Stat {
+	torrent, _ := h.client.AddTorrentInfoHash(infohash.FromHexString(infoHash))
+	<-torrent.GotInfo()
+
+	file := torrent.Files()[fileIdx]
+	states := file.State()
+
+	stats := torrent.Stats()
+	stat := Stat{
+		BytesComplete:    0,
+		BytesTotal:       file.Length(),
+		TotalPeers:       stats.TotalPeers,
+		PendingPeers:     stats.PendingPeers,
+		ActivePeers:      stats.ActivePeers,
+		ConnectedSeeders: stats.ConnectedSeeders,
+		HalfOpenPeers:    stats.HalfOpenPeers,
+		PiecesComplete:   stats.PiecesComplete,
+	}
+
+	for _, state := range states {
+		if state.Completion.Complete {
+			stat.BytesComplete += state.Bytes
+		}
+	}
+
+	return stat
+}
+
 func (h Service) StreamFileHTTP(w http.ResponseWriter, r *http.Request, infoHash string, fileIdx int) {
 	torrent, _ := h.client.AddTorrentInfoHash(infohash.FromHexString(infoHash))
 	<-torrent.GotInfo()
