@@ -21,8 +21,6 @@ type Service struct {
 }
 
 func DefaultService() (Service, error) {
-	slog.Info("starting torrent service")
-
 	svc := Service{}
 
 	cache, err := os.UserCacheDir()

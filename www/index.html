@@ -1,26 +1,49 @@
-<!-- <h1>{{ .Meta.Name }} ({{ .Meta.ReleaseInfo }})</h1> -->
-
-<!-- <img width="300px" src="{{ .Meta.Poster }}"><br> -->
-
-<!-- {{ if eq .Meta.Type "movie" }} -->
-<!-- 	<a href="/streams/movie/{{ .ID }}">Go to streams</a><br> -->
-<!-- {{ else }} -->
-<!-- 	{{ range .Meta.Videos }} -->
-<!-- 	{{ if .Season }} -->
-<!-- 	<a href="/streams/series/{{ .ID }}">{{ .Season }}x{{ .Number }} - {{ .Name }}</a><br> -->
-<!-- 	{{ end }} -->
-<!-- 	{{ end }} -->
-<!-- {{ end }} -->
-
-<!-- GET /api/meta/{type}/details/{id} -->
-
 <!DOCTYPE html>
 <html>
 <head>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body x-data="details">
-  <h1>EBA</h1>
+<body x-data="search">
+  <div id="container">
+    <div id="search-container">
+      <h2>Search</h2>
+      <input
+        id="search-input"
+        type="text"
+        x-model="query"
+        @input.debounce="fetchAllMetas()"
+        autofocus />
+    </div>
+    <div x-show="showResults">
+      <div>
+        <h2>movies</h2>
+        <div class="content-list">
+          <template x-for="m in movies">
+            <a x-bind:href="`/details/?type=movie&id=${m.id}`" class="content-card">
+              <div class="content-card-img-container">
+                <img x-bind:src="m.poster">
+              </div>
+              <div class="content-card-title" x-text="m.name"></div>
+            </a>
+          </template>
+        </div>
+      </div>
+      <div>
+        <h2>series</h2>
+        <div class="content-list">
+          <template x-for="s in series">
+            <a x-bind:href="`/details/?type=series&id=${m.id}`" class="content-card">
+              <div class="content-card-img-container">
+                <img x-bind:src="s.poster">
+              </div>
+              <div class="content-card-title" x-text="s.name"></div>
+            </a>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <style>
     * {
         box-sizing: border-box;
@@ -36,9 +59,12 @@
     html, body {
         width: 100%;
         height: 100vh;
-        padding: 10px;
         background-color: #333;
         color: white;
+    }
+
+    #container {
+        padding: 10px;
     }
 
     #search-container {

@@ -25,12 +25,20 @@ type searchMetaResponse struct {
 }
 
 type Meta struct {
-	ID          string  `json:"id"`
-	Type        string  `json:"type"`
-	Name        string  `json:"name"`
-	ReleaseInfo string  `json:"releaseInfo"`
-	Poster      string  `json:"poster"`
-	Videos      []Video `json:"videos"`
+	ID          string   `json:"id"`
+	Type        string   `json:"type"`
+	Name        string   `json:"name"`
+	ReleaseInfo string   `json:"releaseInfo"`
+	Description string   `json:"description"`
+	Runtime     string   `json:"runtime"`
+	IMDBRating  string   `json:"imdbRating"`
+	Poster      string   `json:"poster"`
+	Background  string   `json:"background"`
+	Logo        string   `json:"logo"`
+	Videos      []Video  `json:"videos"`
+	Genre       []string `json:"genre"`
+	Director    []string `json:"director"`
+	Writer      []string `json:"writer"`
 }
 
 type Video struct {
@@ -61,7 +69,7 @@ func (s API) Get(kind, id string) (Meta, error) {
 		return Meta{}, err
 	}
 
-	slog.Debug("Meta response", "data", res.Meta)
+	// slog.Debug("Meta response", "data", res.Meta)
 
 	return res.Meta, nil
 }

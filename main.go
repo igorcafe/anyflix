@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
@@ -12,7 +14,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/igorcafe/anyflix/meta"
 	"github.com/igorcafe/anyflix/opensubs"
@@ -27,6 +28,9 @@ const cmdTmpl = `mpv
 {{ end }}
 `
 
+//go:embed www/*
+var www embed.FS
+
 func main() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
@@ -34,58 +38,74 @@ func main() {
 
 	opensubtitles := opensubs.DefaultAPI()
 	torrentSource := source.DefaultTorrentIOAPI()
+
+	slog.Info("starting torrent service")
 	torrentService, err := torrent.DefaultService()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	time.Sleep(time.Second * time.Second)
+	slog.Info("started torrent service")
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./www/home.html")
-	})
+	// mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+	// 	http.ServeFile(w, r, "./www/home.html")
+	// })
 
-	mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query()
-		res, err := metaAPI.Search(q.Get("type"), q.Get("query"))
-		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		tmpl := template.Must(template.ParseFiles("./www/search.html"))
-		err = tmpl.Execute(w, res)
-		if err != nil {
-			slog.Error("", "err", err)
-			return
-		}
-	})
+	// mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+	// 	http.Fil
+	// 	http.ServeFile(w, r, "./www/home.html")
+	// })
 
-	mux.HandleFunc("GET /details/{type}/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		kind := r.PathValue("type")
+	www, err := fs.Sub(www, "www")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		metadata, err := metaAPI.Get(kind, id)
-		if err != nil {
-			slog.Error("", "err", err)
-			return
-		}
+	_ = www
 
-		tmpl := template.Must(template.ParseFiles("./www/details.html"))
+	// mux.Handle("GET /", http.FileServerFS(www))
+	mux.Handle("GET /", http.FileServer(http.Dir("./www")))
 
-		err = tmpl.Execute(w, struct {
-			ID   string
-			Meta meta.Meta
-		}{
-			ID:   id,
-			Meta: metadata,
-		})
-		if err != nil {
-			slog.Error("", "err", err)
-			return
-		}
-	})
+	// mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {
+	// 	q := r.URL.Query()
+	// 	res, err := metaAPI.Search(q.Get("type"), q.Get("query"))
+	// 	if err != nil {
+	// 		http.Error(w, "", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// 	tmpl := template.Must(template.ParseFiles("./www/search.html"))
+	// 	err = tmpl.Execute(w, res)
+	// 	if err != nil {
+	// 		slog.Error("", "err", err)
+	// 		return
+	// 	}
+	// })
+
+	// mux.HandleFunc("GET /details/{type}/{id}", func(w http.ResponseWriter, r *http.Request) {
+	// 	id := r.PathValue("id")
+	// 	kind := r.PathValue("type")
+
+	// 	metadata, err := metaAPI.Get(kind, id)
+	// 	if err != nil {
+	// 		slog.Error("", "err", err)
+	// 		return
+	// 	}
+
+	// 	tmpl := template.Must(template.ParseFiles("./www/details.html"))
+
+	// 	err = tmpl.Execute(w, struct {
+	// 		ID   string
+	// 		Meta meta.Meta
+	// 	}{
+	// 		ID:   id,
+	// 		Meta: metadata,
+	// 	})
+	// 	if err != nil {
+	// 		slog.Error("", "err", err)
+	// 		return
+	// 	}
+	// })
 
 	mux.HandleFunc("GET /streams/{type}/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
@@ -170,6 +190,29 @@ func main() {
 		err = cmd.Run()
 		if err != nil {
 			panic(err)
+		}
+	})
+
+	mux.HandleFunc("GET /api/meta/{type}/details/{id}", func(w http.ResponseWriter, r *http.Request) {
+		kind := r.PathValue("type")
+		if kind != "movie" && kind != "series" {
+			http.Error(w, "", http.StatusBadRequest)
+			return
+		}
+
+		id := r.PathValue("id")
+
+		res, err := metaAPI.Get(kind, id)
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		err = json.NewEncoder(w).Encode(res)
+		if err != nil {
+			slog.Error("parse meta to json",
+				"err", err)
+			return
 		}
 	})
 

@@ -1,0 +1,309 @@
+
+<!-- <h1>{{ .Meta.Name }} ({{ .Meta.ReleaseInfo }})</h1> -->
+
+<!-- <img width="300px" src="{{ .Meta.Poster }}"><br> -->
+
+<!-- {{ if eq .Meta.Type "movie" }} -->
+<!-- 	<a href="/streams/movie/{{ .ID }}">Go to streams</a><br> -->
+<!-- {{ else }} -->
+<!-- 	{{ range .Meta.Videos }} -->
+<!-- 	{{ if .Season }} -->
+<!-- 	<a href="/streams/series/{{ .ID }}">{{ .Season }}x{{ .Number }} - {{ .Name }}</a><br> -->
+<!-- 	{{ end }} -->
+<!-- 	{{ end }} -->
+<!-- {{ end }} -->
+
+<!-- GET /api/meta/{type}/details/{id} -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body x-data="details">
+  <div id="background">
+    <div id="background-paint"></div>
+    <img x-bind:src="details.background" />
+  </div>
+  <div id="container">
+    <div id="info">
+      <div id="title-container">
+        <template x-if="details.logo">
+          <img x-bind:src="details.logo" />
+        </template>
+        <template x-if="!details.logo">
+          <h1 x-text="details.name"></h1>
+        </template>
+      </div>
+
+      <div id="info-row">
+        <div x-text="details.runtime"></div>
+        <div x-text="details.releaseInfo"></div>
+        <div x-text="details.imdbRating"></div>
+      </div>
+
+      <div x-text="details.description"></div>
+      <div>
+        <div x-show="details.genre?.length">GENRES</div>
+        <div class="chips">
+          <template x-for="g in details.genre">
+            <div class="chip" x-text="g"></div>
+          </template>
+        </div>
+      </div>
+      <div>
+        <div x-show="details.director?.length">DIRECTORS</div>
+        <div class="chips">
+          <template x-for="d in details.director">
+            <div class="chip" x-text="d"></div>
+          </template>
+        </div>
+      </div>
+
+      <!-- streams -->
+      <!-- <div x-text="streams"></div> -->
+    </div>
+    <div id="streams-container">
+      <!-- <div x-text="streams"></div> -->
+      <div id="streams">
+
+        <template x-for="s in streams">
+          <a
+            href="#"
+            class="stream"
+            @click="selectedStream = s"
+            x-data="{names: s.name.split('\n'), titles: s.title.split('\n')}">
+            <div>
+              <div x-text="names[0]"></div>
+              <div x-text="names[1]"></div>
+            </div>
+            <div>
+              <div x-text="titles[0]"></div>
+              <div x-text="titles[1]"></div>
+            </div>
+          </a>
+        </template>
+      </div>
+      <template x-if="selectedStream">
+        <div id="selected-stream" >
+          <div id="stream-options" x-data="{magnet: magnetLink(), url: streamURL()}">
+            <label>Magnet link: <input type="text" x-model="magnet"></label>
+            <label>Stream URL: <input type="text" x-model="url"></label>
+            <!-- <label>Subtitle languages: Portuguese (Brazil), Portuguese (Portugal), English (US) [TODO] -->
+            <!-- </label> -->
+
+            <button x-data="{text: 'play in mpv'}" x-text="text" @click="launchPlayer(); text='loading...'"></button>
+            <button @click="window.open(url, '_blank')">play in the browser</button>
+            <button>download</button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+  <style>
+    * {
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+        border: none;
+        color: inherit;
+        text-decoration: none;
+        font-size: inherit;
+        font-weight: inherit;
+    }
+
+    html, body {
+        width: 100%;
+        height: 100vh;
+        color: white;
+        overflow: auto;
+    }
+
+    #container {
+        display: flex;
+        justify-content: space-between;
+        padding: 50px;
+    }
+
+    #info {
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+        width: 700px;
+    }
+
+    #info-row {
+        display: flex;
+        gap: 30px;
+    }
+
+    #title-container {
+        width: 350px;
+    }
+
+    #title-container * {
+        width: 100%;
+    }
+
+    #background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: -1;
+    }
+
+    #background-paint {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(45deg, #111, #0005);
+    }
+
+    #background img {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #search-container {
+        width: 100%;
+        display: grid;
+        grid-gap: 20px;
+        place-items: center;
+        padding: 20px 0;
+    }
+
+    .chips {
+        display: flex;
+        gap: 15px;
+        padding: 5px 0;
+    }
+
+    .chip {
+        padding: 7px 20px;
+        background-color: #8882;
+        border-radius: 1000px;
+        font-size: 14px;
+    }
+
+    #streams {
+        padding: 10px;
+        border-radius: 15px;
+        background-color: #111a;
+        display: flex;
+        flex-direction: column;
+        gap: 35px;
+        width: 550px;
+        height: 90vh;
+        font-size: 16px;
+        overflow: auto;
+    }
+
+    .stream {
+        display: flex;
+        gap: 30px;
+        padding: 10px;
+        border-radius: 5px;
+    }
+
+    .stream:hover {
+        background-color: #555a;
+    }
+
+    #selected-stream {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #5557;
+        display: grid;
+        place-items: center;
+    }
+
+    #selected-stream > div {
+        width: 400px;
+        height: 300px;
+        background-color: #555;
+        padding: 20px;
+    }
+
+    #stream-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    button, select {
+        padding: 10px;
+        cursor: pointer;
+        color: black;
+    }
+
+    input[type=text] {
+        padding: 5px;
+        background-color: #888;
+        width: 100%;
+    }
+
+  </style>
+  <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('details', () => ({
+            type: '',
+            id: '',
+            details: {},
+            streams: [],
+            selectedStream: null,
+
+            init() {
+                const params = new URLSearchParams(window.location.search)
+                this.type = params.get('type')
+                this.id = params.get('id')
+
+                this.getDetails()
+                this.getStreams()
+            },
+
+            async getDetails() {
+                const resp = await fetch(`/api/meta/${this.type}/details/${this.id}`)
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+                this.details = await resp.json()
+            },
+
+            async getStreams() {
+                const resp = await fetch(`/api/streams/${this.type}/${this.id}`)
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+                this.streams = await resp.json()
+            },
+
+            async launchPlayer() {
+                const { infoHash, fileIdx } = this.selectedStream
+                const resp = await fetch(`/watch/${this.type}/${this.id}/${infoHash}/${fileIdx}`)
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+            },
+
+            magnetLink() {
+                return `magnet:?xt=urn:btih:${this.selectedStream.infoHash}&dn=${this.selectedStream.title}&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopentor.org%3A2710&tr=udp%3A%2F%2Ftracker.ccc.de%3A80&tr=udp%3A%2F%2Ftracker.blackunicorn.xyz%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969`
+            },
+
+            streamURL() {
+                return `http://localhost:3000/api/torrent/${this.selectedStream.infoHash}/${this.selectedStream.fileIdx}/stream`
+            }
+        }))
+    })
+  </script>
+</body>
+</html>
