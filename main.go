@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/igorcafe/anyflix/meta"
 	"github.com/igorcafe/anyflix/opensubs"
@@ -298,6 +299,11 @@ func main() {
 		}
 	})
 	//mux.HandleFunc("GET /api/opensubs/{id}", subsService.handleFindSubByID)
+
+	go func() {
+		time.Sleep(time.Second)
+		_ = exec.Command("xdg-open", baseURL).Run()
+	}()
 
 	slog.Info("starting anyflix at " + baseURL)
 	err = http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), mux)
