@@ -338,7 +338,7 @@
 
             playInBrowser() {
                 this.startStatTimeout()
-                window.open(url, '_blank')
+                window.open(this.streamURL(), '_blank')
             },
 
             async launchPlayer() {
