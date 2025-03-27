@@ -10,6 +10,10 @@
     <img x-bind:src="details.background" />
   </div>
   <div id="container">
+    <button
+      @click="history.back()"
+      id="go-back">&lt;</button>
+
     <div id="info">
       <div id="title-container">
         <template x-if="details.logo">
@@ -45,41 +49,16 @@
           </template>
         </div>
       </div>
-
-      <!-- streams -->
-      <!-- <div x-text="streams"></div> -->
     </div>
-    <template x-if="streams.length">
-      <div id="streams-container">
-        <div id="streams">
-          <template x-for="s in streams">
-            <a
-              href="#"
-              class="stream"
-              @click="stream = s"
-              x-data="{names: s.name.split('\n'), titles: s.title.split('\n')}">
-              <div>
-                <div x-text="names[0]"></div>
-                <div x-text="names[1]"></div>
-              </div>
-              <div>
-                <div x-text="titles[0]"></div>
-                <div x-text="titles[1]"></div>
-              </div>
-            </a>
-          </template>
-        </div>
-      </div>
-    </template>
 
+    <!-- episode list -->
     <template x-if="!streams.length && details.videos?.length">
       <div id="streams-container">
         <div
           id="streams"
           @scroll.debounce.10ms="episodeListSaveScroll()">
           <template x-for="v in details.videos.filter(v => v.season > 0)">
-            <a
-              href="#"
+            <button
               class="stream"
               @click="video = v">
               <div
@@ -91,12 +70,40 @@
                 x-bind:class="`filler-status ${v.type}`"
                 x-text="v.type"
                 x-show="v.type.length"></div>
-            </a>
+            </button>
           </template>
         </div>
       </div>
     </template>
 
+    <!-- streams -->
+    <template x-if="streams.length">
+      <div id="streams-container">
+        <button
+          @click="video = null"
+          x-show="video"
+          id="streams-go-back">&lt;</button>
+        <div id="streams">
+          <template x-for="s in streams">
+            <button
+              class="stream"
+              @click="stream = s"
+              x-data="{names: s.name.split('\n'), titles: s.title.split('\n')}">
+              <div>
+                <div x-text="names[0]"></div>
+                <div x-text="names[1]"></div>
+              </div>
+              <div>
+                <div x-text="titles[0]"></div>
+                <div x-text="titles[1]"></div>
+              </div>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- selected stream menu -->
     <template x-if="stream">
       <div id="selected-stream" @click="stream = null">
         <div
@@ -130,6 +137,18 @@
         display: flex;
         justify-content: space-between;
         padding: 50px;
+    }
+
+    #go-back {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        width: 40px;
+        height: 40px;
+        font-weight: bold;
+        color: white;
+        background-color: #555c;
+        border-radius: 50%;
     }
 
     #info {
@@ -197,6 +216,22 @@
         background-color: #8882;
         border-radius: 1000px;
         font-size: 14px;
+    }
+
+    #streams-container {
+        position: relative;
+    }
+
+    #streams-go-back {
+        position: absolute;
+        top: -15px;
+        left: -10px;
+        width: 40px;
+        height: 40px;
+        font-weight: bold;
+        color: white;
+        background-color: #555c;
+        border-radius: 50%;
     }
 
     #streams {
