@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"slices"
+
+	"github.com/igorcafe/anyflix/filler"
 )
 
 type API struct {
@@ -46,6 +49,7 @@ type Video struct {
 	Name   string `json:"name"`
 	Season int    `json:"season"`
 	Number int    `json:"number"`
+	Type   string `json:"type"`
 }
 
 func (s API) Get(kind, id string) (Meta, error) {
@@ -69,7 +73,25 @@ func (s API) Get(kind, id string) (Meta, error) {
 		return Meta{}, err
 	}
 
-	// slog.Debug("Meta response", "data", res.Meta)
+	res.Meta.Videos = slices.DeleteFunc(res.Meta.Videos, func(v Video) bool {
+		return v.Season == 0
+	})
+
+	if kind == "series" {
+		fillers, err := filler.SearchShow(res.Meta.Name)
+		if err != nil {
+			slog.Error("search fillers", "err", err)
+		} else {
+			for i, video := range res.Meta.Videos {
+				if len(fillers.Episodes) < i+1 {
+					break
+				}
+
+				video.Type = fillers.Episodes[i].Type
+				res.Meta.Videos[i] = video
+			}
+		}
+	}
 
 	return res.Meta, nil
 }

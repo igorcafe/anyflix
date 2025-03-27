@@ -79,9 +79,15 @@
               href="#"
               class="stream"
               @click="video = v">
-              <div x-text="`S${v.season.toString().padStart(2, '0')}E${v.number.toString().padStart(2, '0')}`"></div>
-
-              <div x-text="v.name"></div>
+              <div
+                x-text="`S${v.season.toString().padStart(2, '0')}E${v.number.toString().padStart(2, '0')}`"></div>
+              <div
+                class="episode-name"
+                x-text="v.name"></div>
+              <div
+                x-bind:class="`filler-status ${v.type}`"
+                x-text="v.type"
+                x-show="v.type.length"></div>
             </a>
           </template>
         </div>
@@ -222,15 +228,40 @@
     }
 
     .stream {
+        position: relative;
         display: flex;
         gap: 30px;
         padding: 10px;
         border-radius: 5px;
+        align-items: center;
+        text-align: left;
     }
 
     .stream:hover {
         background-color: #555a;
     }
+
+    .episode-name {
+        flex: 1;
+    }
+
+    .filler-status {
+        padding: 10px;
+        background-color: grey;
+        border-radius: 1000px;
+        color: black;
+
+        &.canon {
+            background-color: #b5ee45;
+        }
+        &.mixed {
+            background-color: #f4f45f;
+        }
+        &.filler {
+            background-color: #ee6555;
+        }
+    }
+
 
     #selected-stream {
         position: absolute;
