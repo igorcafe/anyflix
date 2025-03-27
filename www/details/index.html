@@ -74,7 +74,9 @@
 
     <template x-if="!streams.length && details.videos?.length">
       <div id="streams-container">
-        <div id="streams">
+        <div
+          id="streams"
+          @scroll.debounce.10ms="episodeListSaveScroll()">
           <template x-for="v in details.videos.filter(v => v.season > 0)">
             <a
               href="#"
@@ -301,6 +303,7 @@
             stream: null,
             video: null,
             stat: null,
+            videosScroll: 0,
 
             init() {
                 this.baseURL = window.location.origin
@@ -323,9 +326,18 @@
                     this.stat = null
                 })
 
-                this.$watch('video', () => {
+                this.$watch('details', async () => {
+                    document.querySelector("#streams").scrollTop = parseInt(localStorage.getItem(`scroll-${this.id}`) ?? '0')
+                })
+
+                this.$watch('video', async () => {
+                    console.log('video', this.video)
                     if (this.video) {
                         this.getStreams()
+                    } else {
+                        this.streams = []
+                        await this.$nextTick()
+                        document.querySelector("#streams").scrollTop = parseInt(localStorage.getItem(`scroll-${this.id}`) ?? '0')
                     }
                 })
             },
@@ -427,6 +439,11 @@
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
+            },
+
+            episodeListSaveScroll() {
+                const scroll = document.querySelector("#streams").scrollTop
+                localStorage.setItem(`scroll-${this.id}`, String(scroll))
             }
         }))
     })
