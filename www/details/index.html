@@ -59,8 +59,8 @@
           @scroll.debounce.10ms="episodeListSaveScroll()">
           <template x-for="v in details.videos.filter(v => v.season > 0)">
             <button
-              class="stream"
-              @click="video = v">
+              x-bind:class="{stream: true, selected: currentEp?.id === v.id}"
+              @click="selectEpisode(v)">
               <div
                 x-text="`S${v.season.toString().padStart(2, '0')}E${v.number.toString().padStart(2, '0')}`"></div>
               <div
@@ -80,7 +80,7 @@
     <template x-if="streams.length">
       <div id="streams-container">
         <button
-          @click="video = null"
+          @click="selectEpisode(null)"
           x-show="video"
           id="streams-go-back">&lt;</button>
         <div id="streams">
@@ -256,6 +256,10 @@
         align-items: center;
         text-align: left;
         color: white;
+
+        &.selected {
+            border: 2px solid #fffa;
+        }
     }
 
     .stream:hover {
@@ -345,6 +349,7 @@
             video: null,
             stat: null,
             videosScroll: 0,
+            currentEp: null,
 
             init() {
                 this.baseURL = window.location.origin
@@ -371,16 +376,8 @@
                     document.querySelector("#streams").scrollTop = parseInt(localStorage.getItem(`scroll-${this.id}`) ?? '0')
                 })
 
-                this.$watch('video', async () => {
-                    console.log('video', this.video)
-                    if (this.video) {
-                        this.getStreams()
-                    } else {
-                        this.streams = []
-                        await this.$nextTick()
-                        document.querySelector("#streams").scrollTop = parseInt(localStorage.getItem(`scroll-${this.id}`) ?? '0')
-                    }
-                })
+
+                this.currentEp = JSON.parse(localStorage.getItem(`episode-${this.id}`) ?? 'null')
             },
 
             async getDetails() {
@@ -485,6 +482,21 @@
             episodeListSaveScroll() {
                 const scroll = document.querySelector("#streams").scrollTop
                 localStorage.setItem(`scroll-${this.id}`, String(scroll))
+            },
+
+            async selectEpisode(video) {
+                this.video = video
+
+                if (video) {
+                    this.getStreams()
+                    this.currentEp = video
+                    localStorage.setItem(`episode-${this.id}`, JSON.stringify(this.currentEp))
+                } else {
+                    this.streams = []
+                    await this.$nextTick()
+                    const scroll = parseInt(localStorage.getItem(`scroll-${this.id}`) ?? '0')
+                    document.querySelector("#streams").scrollTop = scroll
+                }
             }
         }))
     })
