@@ -83,7 +83,11 @@ func SearchShow(query string) (Show, error) {
 	}
 
 	var episodes []Episode
-	showDoc.Find(".EpisodeList tr").Each(func(index int, item *goquery.Selection) {
+	showDoc.Find(".EpisodeList tr").Each(func(i int, item *goquery.Selection) {
+		if i == 0 {
+			return
+		}
+
 		number := item.Find("td.Number").Text()
 		title := item.Find("td.Title").Text()
 
