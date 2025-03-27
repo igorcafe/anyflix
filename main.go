@@ -32,10 +32,20 @@ var www embed.FS
 func main() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
-	metaAPI := meta.DefaultAPI()
+	slog.Info("loading config")
+	config, err := ConfigLoad()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	metaAPI := meta.DefaultAPI()
 	opensubtitles := opensubs.DefaultAPI()
-	torrentSource := source.DefaultTorrentIOAPI()
+
+	addon := config.Addons[0]
+
+	torrentSource := source.TorrentSource{
+		BaseURL: addon.BaseURL(),
+	}
 
 	slog.Info("starting torrent service")
 	torrentService, err := torrent.DefaultService()
@@ -52,12 +62,6 @@ func main() {
 	mux := http.NewServeMux()
 
 	www, err := fs.Sub(www, "www")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	slog.Info("loading config")
-	config, err := ConfigLoad()
 	if err != nil {
 		log.Fatal(err)
 	}

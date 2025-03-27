@@ -5,18 +5,31 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 )
+
+type Addon struct {
+	Name     string
+	Manifest string
+}
+
+func (a Addon) BaseURL() string {
+	return strings.TrimSuffix(a.Manifest, "/"+path.Base(a.Manifest))
+}
 
 type Config struct {
 	PlayerCmd string
 	SubLangs  []string
+	Addons    []Addon
 }
 
 func DefaultConfig() Config {
 	return Config{
 		PlayerCmd: "mpv {{.URL}} {{range .Subs}} --sub-file={{.URL}} {{end}}",
 		SubLangs:  []string{"pob"},
+		Addons:    []Addon{},
 	}
 }
 

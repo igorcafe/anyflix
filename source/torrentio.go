@@ -8,14 +8,8 @@ import (
 	"net/http"
 )
 
-type TorrentIOAPI struct {
+type TorrentSource struct {
 	BaseURL string
-}
-
-func DefaultTorrentIOAPI() TorrentIOAPI {
-	return TorrentIOAPI{
-		"https://torrentio.strem.fun",
-	}
 }
 
 type torrentioFindResponse struct {
@@ -29,7 +23,7 @@ type Stream struct {
 	FileIdx  int    `json:"fileIdx"`
 }
 
-func (api TorrentIOAPI) Find(kind, imdbID string) ([]Stream, error) {
+func (api TorrentSource) Find(kind, imdbID string) ([]Stream, error) {
 	var res torrentioFindResponse
 
 	url := api.BaseURL + "/stream/" + kind + "/" + imdbID + ".json"
@@ -41,10 +35,9 @@ func (api TorrentIOAPI) Find(kind, imdbID string) ([]Stream, error) {
 	ua := "Mozilla/5.0 (X11; Linux x86_64; rv:133.0) Gecko/20100101 Firefox/133.0"
 	req.Header.Set("User-Agent", ua)
 
-	slog.Info("TorrentIOAPI.Find", "url", url)
+	slog.Info("TorrentSource.Find", "url", url)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		// TODO log
 		return nil, err
 	}
 	defer resp.Body.Close()
