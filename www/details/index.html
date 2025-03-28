@@ -27,7 +27,7 @@
       <div id="info-row">
         <div x-text="details.runtime"></div>
         <div x-text="details.releaseInfo"></div>
-        <div x-text="details.imdbRating"></div>
+        <div class="imdb-rating" x-text="details.imdbRating"></div>
       </div>
 
       <div x-text="details.description"></div>
@@ -161,6 +161,14 @@
     #info-row {
         display: flex;
         gap: 30px;
+        align-items: center;
+    }
+
+    .imdb-rating {
+        color: black;
+        background-color: #f5c518;
+        padding: 5px;
+        border-radius: 5px;
     }
 
     #title-container {
@@ -271,6 +279,7 @@
     }
 
     .filler-status {
+        font-size: 12px;
         padding: 10px;
         background-color: grey;
         border-radius: 1000px;
