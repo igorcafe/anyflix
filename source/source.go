@@ -6,13 +6,17 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"path"
+	"strings"
+
+	"github.com/igorcafe/anyflix/config"
 )
 
-type TorrentSource struct {
+type Source struct {
 	BaseURL string
 }
 
-type torrentioFindResponse struct {
+type FindSourceResponse struct {
 	Streams []Stream `json:"streams"`
 }
 
@@ -23,10 +27,10 @@ type Stream struct {
 	FileIdx  int    `json:"fileIdx"`
 }
 
-func (api TorrentSource) Find(kind, imdbID string) ([]Stream, error) {
-	var res torrentioFindResponse
+func (api Source) Find(kind, imdbID string) ([]Stream, error) {
+	var res FindSourceResponse
 
-	url := api.BaseURL + "/stream/" + kind + "/" + imdbID + ".json"
+	url := ManifestToBaseURL(api.BaseURL) + "/stream/" + kind + "/" + imdbID + ".json"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -49,8 +53,33 @@ func (api TorrentSource) Find(kind, imdbID string) ([]Stream, error) {
 
 	err = json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
-		// TODO log
 		return nil, err
 	}
 	return res.Streams, nil
+}
+
+type SourceMux struct {
+	Addons []config.Addon
+}
+
+// TODO: concurrency
+func (mux SourceMux) Find(kind, imdbID string) ([]Stream, error) {
+	var streams []Stream
+
+	for _, addon := range mux.Addons {
+		url := addon.Manifest
+		torrentSrc := Source{BaseURL: url}
+		_streams, err := torrentSrc.Find(kind, imdbID)
+		if err != nil {
+			return nil, err
+		}
+
+		streams = append(streams, _streams...)
+	}
+
+	return streams, nil
+}
+
+func ManifestToBaseURL(manifest string) string {
+	return strings.TrimSuffix(manifest, "/"+path.Base(manifest))
 }

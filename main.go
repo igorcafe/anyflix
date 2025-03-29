@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/igorcafe/anyflix/config"
 	"github.com/igorcafe/anyflix/meta"
 	"github.com/igorcafe/anyflix/opensubs"
 	"github.com/igorcafe/anyflix/source"
@@ -33,7 +34,7 @@ func main() {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	slog.Info("loading config")
-	config, err := ConfigLoad()
+	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,10 +42,8 @@ func main() {
 	metaAPI := meta.DefaultAPI()
 	opensubtitles := opensubs.DefaultAPI()
 
-	addon := config.Addons[0]
-
-	torrentSource := source.TorrentSource{
-		BaseURL: addon.BaseURL(),
+	torrentSource := source.SourceMux{
+		Addons: cfg.Addons,
 	}
 
 	slog.Info("starting torrent service")
@@ -123,7 +122,7 @@ func main() {
 		}
 
 		subs = slices.DeleteFunc(subs, func(sub opensubs.Sub) bool {
-			return !slices.Contains(config.SubLangs, sub.Lang)
+			return !slices.Contains(cfg.SubLangs, sub.Lang)
 		})
 
 		subsDir := filepath.Join(cacheDir, "subs")
@@ -140,7 +139,7 @@ func main() {
 
 		buf := &bytes.Buffer{}
 		err = template.
-			Must(template.New("").Parse(config.PlayerCmd)).
+			Must(template.New("").Parse(cfg.PlayerCmd)).
 			Execute(buf, map[string]any{
 				"URL":  url,
 				"Subs": subPaths,

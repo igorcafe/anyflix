@@ -1,13 +1,11 @@
-package main
+package config
 
 import (
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 )
 
 type Addon struct {
@@ -15,25 +13,24 @@ type Addon struct {
 	Manifest string
 }
 
-func (a Addon) BaseURL() string {
-	return strings.TrimSuffix(a.Manifest, "/"+path.Base(a.Manifest))
-}
-
 type Config struct {
-	PlayerCmd string
-	SubLangs  []string
-	Addons    []Addon
+	PlayerCmd   string
+	DownloadDir string
+	SubLangs    []string
+	Addons      []Addon
 }
 
 func DefaultConfig() Config {
+	home, _ := os.UserHomeDir()
 	return Config{
-		PlayerCmd: "mpv {{.URL}} {{range .Subs}} --sub-file={{.URL}} {{end}}",
-		SubLangs:  []string{"pob"},
-		Addons:    []Addon{},
+		PlayerCmd:   "mpv {{.URL}} {{range .Subs}} --sub-file={{.URL}} {{end}}",
+		DownloadDir: filepath.Join(home, "Downloads", "anyflix"),
+		SubLangs:    []string{"pob"},
+		Addons:      []Addon{},
 	}
 }
 
-func ConfigLoad() (Config, error) {
+func Load() (Config, error) {
 	var cfg Config
 
 	path, err := os.UserConfigDir()
@@ -46,7 +43,7 @@ func ConfigLoad() (Config, error) {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		cfg = DefaultConfig()
-		err = ConfigSave(cfg)
+		err = Save(cfg)
 		slog.Debug("initialized with default config")
 		return cfg, err
 	}
@@ -63,7 +60,7 @@ func ConfigLoad() (Config, error) {
 	return cfg, nil
 }
 
-func ConfigSave(cfg Config) error {
+func Save(cfg Config) error {
 	path, err := os.UserConfigDir()
 	if err != nil {
 		return err
