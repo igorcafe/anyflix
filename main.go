@@ -2,7 +2,6 @@ package main
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"github.com/igorcafe/anyflix/config"
+	"github.com/igorcafe/anyflix/httpx"
 	"github.com/igorcafe/anyflix/meta"
 	"github.com/igorcafe/anyflix/opensubs"
 	"github.com/igorcafe/anyflix/source"
@@ -80,9 +80,9 @@ func main() {
 	routesMux.HandleFunc("GET /api/meta/{type}/details/{id}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")
 		if kind != "movie" && kind != "series" {
-			httpErrorJSON(w, httpErrorJSONParams{
-				msg:    "invalid content type " + kind,
-				status: http.StatusBadRequest,
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Msg:    "invalid content type " + kind,
+				Status: http.StatusBadRequest,
 			})
 			return
 		}
@@ -91,22 +91,22 @@ func main() {
 
 		res, err := metaAPI.Get(kind, id)
 		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err: err,
-				msg: "find metadata",
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+				Msg: "find metadata",
 			})
 			return
 		}
 
-		httpJSON(w, res)
+		httpx.JSON(w, res)
 	})
 
 	routesMux.HandleFunc("GET /api/meta/{type}/search/{query}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")
 		if kind != "movie" && kind != "series" {
-			httpErrorJSON(w, httpErrorJSONParams{
-				msg:    "invalid content type " + kind,
-				status: http.StatusBadRequest,
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Msg:    "invalid content type " + kind,
+				Status: http.StatusBadRequest,
 			})
 			return
 		}
@@ -115,14 +115,14 @@ func main() {
 
 		res, err := metaAPI.Search(kind, query)
 		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err: err,
-				msg: "find metadata",
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+				Msg: "find metadata",
 			})
 			return
 		}
 
-		httpJSON(w, res)
+		httpx.JSON(w, res)
 	})
 
 	routesMux.HandleFunc("GET /api/streams/{type}/{imdbID}", func(w http.ResponseWriter, r *http.Request) {
@@ -135,17 +135,17 @@ func main() {
 			return
 		}
 
-		httpJSON(w, streams)
+		httpx.JSON(w, streams)
 	})
 
 	routesMux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/stream", func(w http.ResponseWriter, r *http.Request) {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err:    err,
-				msg:    "invalid fileIdx",
-				status: http.StatusBadRequest,
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err:    err,
+				Msg:    "invalid fileIdx",
+				Status: http.StatusBadRequest,
 			})
 			return
 		}
@@ -156,10 +156,10 @@ func main() {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err:    err,
-				msg:    "invalid fileIdx",
-				status: http.StatusBadRequest,
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err:    err,
+				Msg:    "invalid fileIdx",
+				Status: http.StatusBadRequest,
 			})
 			return
 		}
@@ -170,17 +170,17 @@ func main() {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err:    err,
-				msg:    "invalid fileIdx",
-				status: http.StatusBadRequest,
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err:    err,
+				Msg:    "invalid fileIdx",
+				Status: http.StatusBadRequest,
 			})
 			return
 		}
 
 		stat := torrentService.Stat(infoHash, fileIdx)
 
-		httpJSON(w, stat)
+		httpx.JSON(w, stat)
 	})
 
 	routesMux.HandleFunc("GET /api/torrent/{infoHash}/drop", func(w http.ResponseWriter, r *http.Request) {
@@ -192,19 +192,19 @@ func main() {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err:    err,
-				msg:    "invalid fileIdx",
-				status: http.StatusBadRequest,
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err:    err,
+				Msg:    "invalid fileIdx",
+				Status: http.StatusBadRequest,
 			})
 			return
 		}
 
 		hash, err := torrentService.FileHash(infoHash, fileIdx)
 		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err: err,
-				msg: "get file hash",
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+				Msg: "get file hash",
 			})
 			return
 		}
@@ -213,7 +213,7 @@ func main() {
 			"hash": hash,
 		}
 
-		httpJSON(w, res)
+		httpx.JSON(w, res)
 	})
 
 	routesMux.HandleFunc("GET /api/opensubs/{type}/{imdbID}/{fileHash}", func(w http.ResponseWriter, r *http.Request) {
@@ -228,7 +228,7 @@ func main() {
 			return
 		}
 
-		httpJSON(w, subs)
+		httpx.JSON(w, subs)
 	})
 	//mux.HandleFunc("GET /api/opensubs/{id}", subsService.handleFindSubByID)
 
@@ -281,56 +281,4 @@ func downloadSubtitles(dir string, subs []opensubs.Sub) ([]string, error) {
 	}
 
 	return paths, nil
-}
-
-func httpJSON(w http.ResponseWriter, obj any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	b, err := json.MarshalIndent(obj, "", "  ")
-	if err != nil {
-		httpErrorJSON(w, httpErrorJSONParams{
-			err: err,
-			msg: "failed to serialize response",
-		})
-		return
-	}
-
-	_, err = w.Write(b)
-	if err != nil {
-		slog.Error("write response", "err", err)
-	}
-}
-
-type httpErrorJSONParams struct {
-	err    error
-	msg    string
-	status int
-}
-
-func httpErrorJSON(w http.ResponseWriter, params httpErrorJSONParams) {
-	var finalMsg string
-
-	if params.err != nil {
-		slog.Error(params.msg, "err", params.err)
-		finalMsg = fmt.Sprintf("%v: %v", params.msg, params.err)
-	} else {
-		finalMsg = params.msg
-	}
-
-	b, _ := json.MarshalIndent(map[string]any{
-		"params.error": true,
-		"message":      finalMsg,
-	}, "", "  ")
-
-	status := params.status
-	if status == 0 {
-		status = http.StatusInternalServerError
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-
-	_, err := w.Write(b)
-	if err != nil {
-		slog.Error("write error response", "err", err)
-	}
 }
