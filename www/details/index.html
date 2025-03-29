@@ -391,7 +391,10 @@
                 })
 
                 this.$watch('details', async () => {
-                    document.querySelector("#streams").scrollTop = parseInt(localStorage.getItem(`scroll-${this.id}`) ?? '0')
+                    const streams = document.querySelector("#streams")
+                    if (streams) {
+                        streams.scrollTop = parseInt(localStorage.getItem(`scroll-${this.id}`) ?? '0')
+                    }
                 })
 
 
