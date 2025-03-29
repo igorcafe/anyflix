@@ -135,7 +135,6 @@
   <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('search', () => ({
-            showResults: false,
             query: '',
             movies: [],
             series: [],
@@ -145,19 +144,20 @@
                 const params = new URLSearchParams(window.location.search)
                 this.query = params.get('q') ?? ''
                 this.fetchAllMetas()
-                this.fetchRecent()
             },
 
             async fetchAllMetas() {
+                await this.fetchRecent()
+
                 if (this.query.length < 3) {
+                    this.movies = []
+                    this.series = []
                     return
                 }
 
                 const url = new URL(window.location.href)
                 url.searchParams.set('q', this.query)
                 window.history.pushState({ path: url.href }, '', url.href)
-
-                this.showResults = true
 
                 const [movies, series] = await Promise.all([
                     this.fetchMeta('movie', this.query),
@@ -182,6 +182,10 @@
                     throw new Error(resp.statusText)
                 }
                 this.recent = await resp.json()
+
+                if (this.query.length >= 3) {
+                    this.recent = this.recent.filter(r => r.name.toLowerCase().includes(this.query.toLowerCase()))
+                }
             },
 
             async openDetails(content) {
