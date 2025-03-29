@@ -8,12 +8,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/types/infohash"
+	"github.com/igorcafe/anyflix/config"
 )
 
 type Service struct {
@@ -23,14 +23,14 @@ type Service struct {
 func DefaultService() (Service, error) {
 	svc := Service{}
 
-	cache, err := os.UserCacheDir()
+	cfg, err := config.Load()
 	if err != nil {
 		return svc, err
 	}
 
 	config := torrent.NewDefaultClientConfig()
 	config.Seed = true
-	config.DataDir = filepath.Join(cache, "anyflix")
+	config.DataDir = cfg.DownloadDir
 
 	err = os.MkdirAll(config.DataDir, os.ModePerm)
 	if err != nil {
