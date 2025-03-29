@@ -129,7 +129,10 @@ func main() {
 
 		streams, err := torrentSource.Find(kind, imdbID)
 		if err != nil {
-			slog.Error("failed to find streams", "err", err)
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+				Msg: "find streams",
+			})
 			return
 		}
 
@@ -221,8 +224,10 @@ func main() {
 
 		subs, err := opensubtitles.Search(kind, imdbID, fileHash)
 		if err != nil {
-			slog.Error("failed to search subtitles",
-				"err", err)
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+				Msg: "search subtitles",
+			})
 			return
 		}
 
