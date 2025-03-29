@@ -58,3 +58,20 @@ func ErrorJSON(w http.ResponseWriter, params ErrorJSONParams) {
 		slog.Error("write error response", "err", err)
 	}
 }
+
+type ResponseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *ResponseWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *ResponseWriter) Status() int {
+	if w.status == 0 {
+		return 200
+	}
+	return w.status
+}

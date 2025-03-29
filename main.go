@@ -56,8 +56,11 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		slog.Debug(fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+		wx := &httpx.ResponseWriter{ResponseWriter: w}
+		w = wx
+		slog.Debug(fmt.Sprintf("[INC] - %s %s", r.Method, r.URL.Path))
 		routesMux.ServeHTTP(w, r)
+		slog.Debug(fmt.Sprintf("[%d] - %s %s", wx.Status(), r.Method, r.URL.Path))
 	})
 
 	www, err := fs.Sub(www, "www")
