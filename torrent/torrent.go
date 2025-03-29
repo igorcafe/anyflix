@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/types/infohash"
@@ -55,6 +56,7 @@ func (h Service) DownloadFile(infoHash string, fileIdx int) {
 }
 
 type Stat struct {
+	Timestamp        int64 `json:"timestamp"`
 	BytesComplete    int64 `json:"bytesComplete"`
 	BytesTotal       int64 `json:"bytesTotal"`
 	TotalPeers       int   `json:"totalPeers"`
@@ -99,6 +101,8 @@ func (h Service) Stat(infoHash string, fileIdx int) Stat {
 			stat.BytesComplete += state.Bytes
 		}
 	}
+
+	stat.Timestamp = time.Now().UnixMilli()
 
 	return stat
 }

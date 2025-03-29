@@ -125,7 +125,9 @@
           <template x-if="stat">
             <div>
               <div x-text="`${stat.bytesComplete && (100 * stat.bytesComplete / stat.bytesTotal).toFixed(1)}% - pending: ${stat.pendingPeers} - connected: ${stat.connectedSeeders} - active: ${stat.activePeers}`"></div>
-              <div x-text="`↓ ${(stat.bytesComplete / 1024 / 1024).toFixed(0)} MB - ↑ ${(stat.bytesWritten / 1024 / 1024).toFixed(0)} MB`"></div>
+              <div
+                x-text="downloadStatusStr"
+                ></div>
             </div>
           </template>
         </div>
@@ -358,8 +360,10 @@
             prevStream: null,
             video: null,
             stat: null,
+            prevStat: null,
             videosScroll: 0,
             currentEp: null,
+            downloadStatusStr: '',
 
             init() {
                 this.baseURL = window.location.origin
@@ -464,17 +468,20 @@
 
             async getStat() {
                 if (!this.stat) {
+                    this.prevStat = null
                     this.stat = {
-                        "bytesComplete": 0,
-                        "bytesTotal": 0,
-                        "totalPeers": 0,
-                        "pendingPeers": 0,
-                        "activePeers": 0,
-                        "connectedSeeders": 0,
-                        "halfOpenPeers": 0,
-                        "piecesComplete": 0,
-                        "bytesWritten": 0,
-                        "bytesRead": 0,
+                        bytesComplete: 0,
+                        bytesTotal: 0,
+                        totalPeers: 0,
+                        pendingPeers: 0,
+                        activePeers: 0,
+                        connectedSeeders: 0,
+                        halfOpenPeers: 0,
+                        piecesComplete: 0,
+                        bytesWritten: 0,
+                        bytesRead: 0,
+                        downloadSpeed: 0,
+                        uploadSpeed: 0,
                     }
                 }
 
@@ -483,7 +490,32 @@
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
-                this.stat = await resp.json()
+                const stat = {
+                    ...(await resp.json()),
+                    downloadSpeed: 0,
+                    uploadSpeed: 0,
+                }
+
+                if (this.prevStat) {
+                    const deltaTimeMs = stat.timestamp - this.prevStat.timestamp
+                    if (deltaTimeMs) {
+                        const deltaDownloaded = stat.bytesRead - this.prevStat.bytesRead
+                        const deltaUploaded = stat.bytesWritten - this.prevStat.bytesWritten
+                        stat.downloadSpeed = 1000 * deltaDownloaded / deltaTimeMs
+                        stat.uploadSpeed = 1000 * deltaUploaded / deltaTimeMs
+
+                        const dlMB = `${(stat.bytesComplete / 1024 / 1024).toFixed(0)} MB`
+                        const dlSpeed = `${(stat.downloadSpeed / 1024 / 1024).toFixed(1)} MB/s`
+
+                        const upMB = `${(stat.bytesWritten / 1024 / 1024).toFixed(0)} MB`
+                        const upSpeed = `${(stat.uploadSpeed / 1024 / 1024).toFixed(1)} MB/s`
+
+                        this.downloadStatusStr = `↓ ${dlMB} - ${dlSpeed} | ↑ ${upMB} - ${upSpeed}`
+                    }
+                }
+
+                this.stat = JSON.parse(JSON.stringify(stat))
+                this.prevStat = JSON.parse(JSON.stringify(this.stat))
             },
 
             async dropTorrent(infoHash) {
