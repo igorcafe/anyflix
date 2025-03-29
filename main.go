@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"io/fs"
 	"log"
@@ -15,9 +13,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/igorcafe/anyflix/config"
@@ -80,82 +76,6 @@ func main() {
 	// use it instead for faster developing
 	// routesMux.Handle("GET /", http.FileServer(http.Dir("./www")))
 	// _ = www
-
-	routesMux.HandleFunc("GET /watch/{type}/{imdbID}/{infoHash}/{fileIdx}", func(w http.ResponseWriter, r *http.Request) {
-		kind := r.PathValue("type")
-		infoHash := r.PathValue("infoHash")
-		imdbID := r.PathValue("imdbID")
-
-		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
-		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err:    err,
-				msg:    "invalid fileIdx",
-				status: http.StatusBadRequest,
-			})
-			return
-		}
-
-		url := fmt.Sprintf(
-			"%s/api/torrent/%s/%d/stream",
-			baseURL,
-			infoHash,
-			fileIdx,
-		)
-
-		hash, err := torrentService.FileHash(infoHash, fileIdx)
-		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err: err,
-				msg: "failed to get file hash",
-			})
-			return
-		}
-
-		subs, err := opensubtitles.Search(kind, imdbID, hash)
-		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err: err,
-				msg: "failed to search subtitles",
-			})
-			return
-		}
-
-		subs = slices.DeleteFunc(subs, func(sub opensubs.Sub) bool {
-			return !slices.Contains(cfg.SubLangs, sub.Lang)
-		})
-
-		subsDir := filepath.Join(cacheDir, "subs")
-		_ = os.MkdirAll(subsDir, 0700)
-
-		subPaths, err := downloadSubtitles(subsDir, subs)
-		if err != nil {
-			httpErrorJSON(w, httpErrorJSONParams{
-				err: err,
-				msg: "download subtitles",
-			})
-			return
-		}
-
-		buf := &bytes.Buffer{}
-		err = template.
-			Must(template.New("").Parse(cfg.PlayerCmd)).
-			Execute(buf, map[string]any{
-				"URL":  url,
-				"Subs": subPaths,
-			})
-
-		args := strings.Fields(buf.String())
-		slog.Info(fmt.Sprint(args))
-		cmd := exec.CommandContext(r.Context(), args[0], args[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err = cmd.Run()
-		if err != nil {
-			panic(err)
-		}
-	})
 
 	routesMux.HandleFunc("GET /api/meta/{type}/details/{id}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")

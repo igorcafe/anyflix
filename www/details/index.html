@@ -114,12 +114,12 @@
           <label>Stream URL: <input type="text" x-model="url"></label>
 
           <div class="buttons">
-          <button x-data="{text: 'watch in mpv'}" x-text="text" @click="launchPlayer(); text='loading...'"></button>
-          <button @click="playInBrowser()">watch here</button>
-          <button
-            x-data="{txt: 'download'}"
-            @click="download(); txt='downloading...'"
-            x-text="txt"></button>
+              <button @click="playInBrowser()">watch in browser</button>
+              <button
+                  x-data="{txt: 'download'}"
+                  @click="download(); txt='downloading...'"
+                  x-text="txt">
+              </button>
           </div>
 
           <template x-if="stat">
