@@ -355,6 +355,7 @@
             details: {},
             streams: [],
             stream: null,
+            prevStream: null,
             video: null,
             stat: null,
             videosScroll: 0,
@@ -377,6 +378,10 @@
                         this.startStatTimeout()
                     } else if(this.stat?.bytesComplete === 0) {
                         this.dropTorrent(oldStream.infoHash)
+                    }
+                    if (!this.stream) {
+                        this.prevStream = oldStream
+                        console.log(this.prevStream)
                     }
                     this.stat = null
                 })
@@ -497,9 +502,10 @@
                 this.video = video
 
                 if (video) {
-                    this.getStreams()
                     this.currentEp = video
                     localStorage.setItem(`episode-${this.id}`, JSON.stringify(this.currentEp))
+                    await this.getStreams()
+                    this.stream = this.streams.find(s => s.infoHash === this.prevStream?.infoHash)
                 } else {
                     this.streams = []
                     await this.$nextTick()
