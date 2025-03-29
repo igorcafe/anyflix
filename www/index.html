@@ -15,32 +15,44 @@
         @input.debounce.1000ms="fetchAllMetas()"
         autofocus />
     </div>
-    <div x-show="showResults">
-      <div>
-        <h2>movies</h2>
-        <div class="content-list">
-          <template x-for="m in movies">
-            <a x-bind:href="`/details/?type=movie&id=${m.id}`" class="content-card">
-              <div class="content-card-img-container">
-                <img x-bind:src="m.poster">
-              </div>
-              <div class="content-card-title" x-text="m.name"></div>
-            </a>
-          </template>
-        </div>
+    <div x-show="recent.length">
+      <h2>recently viewed</h2>
+      <div class="content-list">
+        <template x-for="r in recent">
+          <button @click="openDetails(r)" class="content-card">
+            <div @click.stop="removeRecent(r)" class="remove-recent">X</div>
+            <div class="content-card-img-container">
+              <img x-bind:src="r.poster">
+            </div>
+            <div class="content-card-title" x-text="r.name"></div>
+          </button>
+        </template>
       </div>
-      <div>
-        <h2>series</h2>
-        <div class="content-list">
-          <template x-for="s in series">
-            <a x-bind:href="`/details/?type=series&id=${s.id}`" class="content-card">
-              <div class="content-card-img-container">
-                <img x-bind:src="s.poster">
-              </div>
-              <div class="content-card-title" x-text="s.name"></div>
-            </a>
-          </template>
-        </div>
+    </div>
+    <div x-show="series.length">
+      <h2>series</h2>
+      <div class="content-list">
+        <template x-for="s in series">
+          <button @click="openDetails(s)" class="content-card">
+            <div class="content-card-img-container">
+              <img x-bind:src="s.poster">
+            </div>
+            <div class="content-card-title" x-text="s.name"></div>
+          </button>
+        </template>
+      </div>
+    </div>
+    <div x-show="movies.length">
+      <h2>movies</h2>
+      <div class="content-list">
+        <template x-for="m in movies">
+          <button @click="openDetails(m)" class="content-card">
+            <div class="content-card-img-container">
+              <img x-bind:src="m.poster">
+            </div>
+            <div class="content-card-title" x-text="m.name"></div>
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -83,6 +95,7 @@
     }
 
     .content-card {
+        position: relative;
         padding: 10px;
         height: 100%;
         flex: 0 0 270px;
@@ -90,6 +103,19 @@
         flex-direction: column;
         text-align: center;
         background-color: #0001;
+    }
+
+    .remove-recent {
+        position: absolute;
+        top: 0;
+        right: -5px;
+        border-radius: 50%;
+        color: white;
+        background-color: #666;
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
     }
 
     .content-card-title {
@@ -113,11 +139,13 @@
             query: '',
             movies: [],
             series: [],
+            recent: [],
 
             init() {
                 const params = new URLSearchParams(window.location.search)
                 this.query = params.get('q') ?? ''
                 this.fetchAllMetas()
+                this.fetchRecent()
             },
 
             async fetchAllMetas() {
@@ -139,13 +167,46 @@
                 this.movies = movies
                 this.series = series
             },
+
             async fetchMeta(kind, query) {
                 const resp = await fetch(`/api/meta/${kind}/search/${query}`)
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
-
                 return await resp.json()
+            },
+
+            async fetchRecent() {
+                const resp = await fetch(`/api/recent`)
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+                this.recent = await resp.json()
+            },
+
+            async openDetails(content) {
+                await this.addRecent(content)
+                window.location.href = `/details/?type=${content.type}&id=${content.id}`
+            },
+
+            async addRecent(r) {
+                const resp = await fetch(`/api/recent`, {
+                    method: 'POST',
+                    body: JSON.stringify(r),
+                })
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+            },
+
+            async removeRecent(r) {
+                const resp = await fetch(`/api/recent/${r.id}`, {
+                    method: 'DELETE',
+                })
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+                this.fetchRecent()
             }
         }))
     })

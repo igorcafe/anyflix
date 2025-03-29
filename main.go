@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"time"
 
@@ -77,6 +79,42 @@ func main() {
 	// use it instead for faster developing
 	// routesMux.Handle("GET /", http.FileServer(http.Dir("./www")))
 	// _ = www
+
+	recent := []map[string]any{}
+
+	routesMux.HandleFunc("GET /api/recent", func(w http.ResponseWriter, r *http.Request) {
+		httpx.JSON(w, recent)
+	})
+
+	routesMux.HandleFunc("POST /api/recent", func(w http.ResponseWriter, r *http.Request) {
+		rec := map[string]any{}
+		err = json.NewDecoder(r.Body).Decode(&rec)
+		if err != nil {
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err:    err,
+				Status: http.StatusBadRequest,
+			})
+		}
+
+		i := slices.IndexFunc(recent, func(rec2 map[string]any) bool {
+			return rec2["id"] == rec["id"]
+		})
+
+		if i != -1 {
+			recent = slices.Delete(recent, i, i+1)
+		}
+
+		temp := []map[string]any{rec}
+
+		recent = append(temp, recent...)
+	})
+
+	routesMux.HandleFunc("DELETE /api/recent/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		recent = slices.DeleteFunc(recent, func(rec map[string]any) bool {
+			return rec["id"] == id
+		})
+	})
 
 	routesMux.HandleFunc("GET /api/meta/{type}/details/{id}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")

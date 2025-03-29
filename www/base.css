@@ -17,3 +17,7 @@ html, body {
     color: white;
     overflow: auto;
 }
+
+button {
+    cursor: pointer;
+}
