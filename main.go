@@ -59,7 +59,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	routesMux := http.NewServeMux()
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		slog.Debug(fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+		routesMux.ServeHTTP(w, r)
+	})
 
 	www, err := fs.Sub(www, "www")
 	if err != nil {
@@ -70,41 +76,24 @@ func main() {
 	port := 2025
 	baseURL := fmt.Sprintf("http://%s:%d", host, port)
 
-	mux.Handle("GET /", http.FileServerFS(www))
+	routesMux.Handle("GET /", http.FileServerFS(www))
 
 	// use it instead for faster developing
-	// mux.Handle("GET /", http.FileServer(http.Dir("./www")))
+	// routesMux.Handle("GET /", http.FileServer(http.Dir("./www")))
+	// _ = www
 
-	mux.HandleFunc("GET /streams/{type}/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		kind := r.PathValue("type")
-		tmpl := template.Must(template.ParseFiles("./www/streams.html"))
-
-		streams, err := torrentSource.Find(kind, id)
-		err = tmpl.Execute(w, struct {
-			ID      string
-			Kind    string
-			Streams []source.Stream
-		}{
-			ID:      id,
-			Kind:    kind,
-			Streams: streams,
-		})
-		if err != nil {
-			slog.Error("", "err", err)
-			return
-		}
-	})
-
-	mux.HandleFunc("GET /watch/{type}/{imdbID}/{infoHash}/{fileIdx}", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /watch/{type}/{imdbID}/{infoHash}/{fileIdx}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")
 		infoHash := r.PathValue("infoHash")
 		imdbID := r.PathValue("imdbID")
 
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			slog.Error("invalid fileIdx", "err", err)
-			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err:    err,
+				msg:    "invalid fileIdx",
+				status: http.StatusBadRequest,
+			})
 			return
 		}
 
@@ -117,14 +106,19 @@ func main() {
 
 		hash, err := torrentService.FileHash(infoHash, fileIdx)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err: err,
+				msg: "failed to get file hash",
+			})
 			return
 		}
 
 		subs, err := opensubtitles.Search(kind, imdbID, hash)
 		if err != nil {
-			slog.Error("failed to search subtitles", "err", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err: err,
+				msg: "failed to search subtitles",
+			})
 			return
 		}
 
@@ -137,7 +131,10 @@ func main() {
 
 		subPaths, err := downloadSubtitles(subsDir, subs)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err: err,
+				msg: "download subtitles",
+			})
 			return
 		}
 
@@ -161,10 +158,13 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("GET /api/meta/{type}/details/{id}", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/meta/{type}/details/{id}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")
 		if kind != "movie" && kind != "series" {
-			http.Error(w, "", http.StatusBadRequest)
+			httpErrorJSON(w, httpErrorJSONParams{
+				msg:    "invalid content type " + kind,
+				status: http.StatusBadRequest,
+			})
 			return
 		}
 
@@ -172,22 +172,23 @@ func main() {
 
 		res, err := metaAPI.Get(kind, id)
 		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err: err,
+				msg: "find metadata",
+			})
 			return
 		}
 
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil {
-			slog.Error("parse meta to json",
-				"err", err)
-			return
-		}
+		httpJSON(w, res)
 	})
 
-	mux.HandleFunc("GET /api/meta/{type}/search/{query}", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/meta/{type}/search/{query}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")
 		if kind != "movie" && kind != "series" {
-			http.Error(w, "", http.StatusBadRequest)
+			httpErrorJSON(w, httpErrorJSONParams{
+				msg:    "invalid content type " + kind,
+				status: http.StatusBadRequest,
+			})
 			return
 		}
 
@@ -195,19 +196,17 @@ func main() {
 
 		res, err := metaAPI.Search(kind, query)
 		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err: err,
+				msg: "find metadata",
+			})
 			return
 		}
 
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil {
-			slog.Error("parse meta to json",
-				"err", err)
-			return
-		}
+		httpJSON(w, res)
 	})
 
-	mux.HandleFunc("GET /api/streams/{type}/{imdbID}", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/streams/{type}/{imdbID}", func(w http.ResponseWriter, r *http.Request) {
 		imdbID := r.PathValue("imdbID") // TODO
 		kind := r.PathValue("type")     // TODO
 
@@ -217,62 +216,77 @@ func main() {
 			return
 		}
 
-		err = json.NewEncoder(w).Encode(streams) // TODO
+		httpJSON(w, streams)
 	})
 
-	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/stream", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/stream", func(w http.ResponseWriter, r *http.Request) {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			slog.Error("invalid fileIdx", "err", err)
-			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err:    err,
+				msg:    "invalid fileIdx",
+				status: http.StatusBadRequest,
+			})
 			return
 		}
 		torrentService.StreamFileHTTP(w, r, infoHash, fileIdx)
 	})
 
-	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/download", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/download", func(w http.ResponseWriter, r *http.Request) {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			slog.Error("invalid fileIdx", "err", err)
-			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err:    err,
+				msg:    "invalid fileIdx",
+				status: http.StatusBadRequest,
+			})
 			return
 		}
 		torrentService.DownloadFile(infoHash, fileIdx)
 	})
 
-	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/stat", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/stat", func(w http.ResponseWriter, r *http.Request) {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			slog.Error("invalid fileIdx", "err", err)
-			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err:    err,
+				msg:    "invalid fileIdx",
+				status: http.StatusBadRequest,
+			})
 			return
 		}
 
 		stat := torrentService.Stat(infoHash, fileIdx)
 
-		err = json.NewEncoder(w).Encode(stat) // TODO
+		httpJSON(w, stat)
 	})
 
-	mux.HandleFunc("GET /api/torrent/{infoHash}/drop", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/torrent/{infoHash}/drop", func(w http.ResponseWriter, r *http.Request) {
 		infoHash := r.PathValue("infoHash")
 		torrentService.Drop(infoHash)
 	})
 
-	mux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/hash", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/torrent/{infoHash}/{fileIdx}/hash", func(w http.ResponseWriter, r *http.Request) {
 		infoHash := r.PathValue("infoHash")
 		fileIdx, err := strconv.Atoi(r.PathValue("fileIdx"))
 		if err != nil {
-			slog.Error("invalid fileIdx", "err", err)
-			http.Error(w, "invalid fileIdx", http.StatusBadRequest)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err:    err,
+				msg:    "invalid fileIdx",
+				status: http.StatusBadRequest,
+			})
 			return
 		}
 
 		hash, err := torrentService.FileHash(infoHash, fileIdx)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			httpErrorJSON(w, httpErrorJSONParams{
+				err: err,
+				msg: "get file hash",
+			})
 			return
 		}
 
@@ -280,10 +294,10 @@ func main() {
 			"hash": hash,
 		}
 
-		err = json.NewEncoder(w).Encode(res) // TODO
+		httpJSON(w, res)
 	})
 
-	mux.HandleFunc("GET /api/opensubs/{type}/{imdbID}/{fileHash}", func(w http.ResponseWriter, r *http.Request) {
+	routesMux.HandleFunc("GET /api/opensubs/{type}/{imdbID}/{fileHash}", func(w http.ResponseWriter, r *http.Request) {
 		kind := r.PathValue("type")
 		imdbID := r.PathValue("imdbID")
 		fileHash := r.PathValue("fileHash")
@@ -295,12 +309,7 @@ func main() {
 			return
 		}
 
-		err = json.NewEncoder(w).Encode(subs)
-		if err != nil {
-			slog.Error("parse subs to json",
-				"err", err)
-			return
-		}
+		httpJSON(w, subs)
 	})
 	//mux.HandleFunc("GET /api/opensubs/{id}", subsService.handleFindSubByID)
 
@@ -353,4 +362,56 @@ func downloadSubtitles(dir string, subs []opensubs.Sub) ([]string, error) {
 	}
 
 	return paths, nil
+}
+
+func httpJSON(w http.ResponseWriter, obj any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	b, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		httpErrorJSON(w, httpErrorJSONParams{
+			err: err,
+			msg: "failed to serialize response",
+		})
+		return
+	}
+
+	_, err = w.Write(b)
+	if err != nil {
+		slog.Error("write response", "err", err)
+	}
+}
+
+type httpErrorJSONParams struct {
+	err    error
+	msg    string
+	status int
+}
+
+func httpErrorJSON(w http.ResponseWriter, params httpErrorJSONParams) {
+	var finalMsg string
+
+	if params.err != nil {
+		slog.Error(params.msg, "err", params.err)
+		finalMsg = fmt.Sprintf("%v: %v", params.msg, params.err)
+	} else {
+		finalMsg = params.msg
+	}
+
+	b, _ := json.MarshalIndent(map[string]any{
+		"params.error": true,
+		"message":      finalMsg,
+	}, "", "  ")
+
+	status := params.status
+	if status == 0 {
+		status = http.StatusInternalServerError
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+
+	_, err := w.Write(b)
+	if err != nil {
+		slog.Error("write error response", "err", err)
+	}
 }

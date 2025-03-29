@@ -111,6 +111,8 @@ func SearchShow(query string) (Show, error) {
 	})
 
 	bestMatch.Episodes = episodes
+
+	slog.Debug("filler.SearchShow result", "#Episodes", len(bestMatch.Episodes), "show name", bestMatch.Name, "filler list url", bestMatch.URL)
 	return bestMatch, nil
 }
 
