@@ -53,6 +53,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	_ = cacheDir
 
 	routesMux := http.NewServeMux()
 	mux := http.NewServeMux()
