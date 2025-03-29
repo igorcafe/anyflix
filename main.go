@@ -3,15 +3,12 @@ package main
 import (
 	"embed"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -241,45 +238,4 @@ func main() {
 	slog.Info("starting anyflix at " + baseURL)
 	err = http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), mux)
 	log.Panic(err)
-}
-
-func downloadSubtitles(dir string, subs []opensubs.Sub) ([]string, error) {
-	paths := []string{}
-
-	for _, sub := range subs {
-		func() {
-			filePath := filepath.Join(dir, path.Base(sub.URL))
-			_, err := os.Stat(filePath)
-			if err == nil {
-				slog.Info("subtitle already downloaded", "url", sub.URL)
-				paths = append(paths, filePath)
-				return
-			}
-
-			resp, err := http.Get(sub.URL)
-			if err != nil {
-				slog.Error("failed to download subtitle", "url", sub.URL, "err", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			f, err := os.Create(filePath)
-			if err != nil {
-				slog.Error("failed to download subtitle", "url", sub.URL, "err", err)
-				return
-			}
-			defer f.Close()
-
-			_, err = io.Copy(f, resp.Body)
-			if err != nil {
-				slog.Error("failed to download subtitle", "url", sub.URL, "err", err)
-				return
-			}
-
-			slog.Debug("saved subtitle", "filePath", filePath, "url", sub.URL)
-			paths = append(paths, filePath)
-		}()
-	}
-
-	return paths, nil
 }
