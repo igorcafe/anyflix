@@ -12,11 +12,12 @@
         id="search-input"
         type="text"
         x-model="query"
-        @input.debounce.1000ms="fetchAllMetas()"
+        @keydown.enter="search()"
+        @input.debounce.500ms="search()"
         autofocus />
     </div>
     <div x-show="recent.length">
-      <h2>recently viewed</h2>
+      <h2>recently viewed <div x-show="query.length >= 3">(filtered)</div></h2>
       <div class="content-list">
         <template x-for="r in recent">
           <button @click="openDetails(r)" class="content-card">
@@ -139,14 +140,37 @@
             movies: [],
             series: [],
             recent: [],
+            searching: false,
 
             init() {
                 const params = new URLSearchParams(window.location.search)
                 this.query = params.get('q') ?? ''
-                this.fetchAllMetas()
+
+                if (this.query.length >= 3) {
+                    this.search()
+                }
+
+                // window.addEventListener('popstate', () => {
+                //     const params = new URLSearchParams(window.location.search)
+                //     this.query = params.get('q') ?? ''
+                //     this.fetchAllMetas()
+                // })
             },
 
-            async fetchAllMetas() {
+            async search() {
+                if (this.searching) {
+                    return
+                }
+
+                this.searching = true
+                try {
+                    await this._search()
+                } finally {
+                    this.searching = false
+                }
+            },
+
+            async _search() {
                 await this.fetchRecent()
 
                 if (this.query.length < 3) {
@@ -157,7 +181,10 @@
 
                 const url = new URL(window.location.href)
                 url.searchParams.set('q', this.query)
-                window.history.pushState({ path: url.href }, '', url.href)
+
+                if (url.href !== location.href) {
+                    window.location.href = url.href
+                }
 
                 const [movies, series] = await Promise.all([
                     this.fetchMeta('movie', this.query),
