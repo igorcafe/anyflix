@@ -7,6 +7,7 @@ toolchain go1.23.6
 require (
 	github.com/PuerkitoBio/goquery v1.10.2
 	github.com/anacrolix/torrent v1.53.1
+	modernc.org/sqlite v1.36.3
 )
 
 require (
@@ -81,6 +82,5 @@ require (
 	modernc.org/libc v1.61.13 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.8.2 // indirect
-	modernc.org/sqlite v1.36.3 // indirect
 	zombiezen.com/go/sqlite v0.13.1 // indirect
 )
