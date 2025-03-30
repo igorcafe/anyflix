@@ -206,17 +206,17 @@
             async _search() {
                 await this.fetchRecent()
 
-                if (this.query.length < 3) {
-                    this.movies = []
-                    this.series = []
-                    return
-                }
-
                 const url = new URL(window.location.href)
                 url.searchParams.set('q', this.query)
 
                 if (url.href !== location.href) {
                     window.location.href = url.href
+                }
+
+                if (this.query.length < 3) {
+                    this.movies = []
+                    this.series = []
+                    return
                 }
 
                 const [movies, series] = await Promise.all([
