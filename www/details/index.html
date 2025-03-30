@@ -418,7 +418,7 @@
                 if (!resp.ok) {
                     throw new Error(resp.statusText)
                 }
-                this.streams = await resp.json()
+                this.streams = await resp.json() ?? []
             },
 
             playInBrowser() {
