@@ -56,6 +56,32 @@
         </template>
       </div>
     </div>
+    <div x-show="popularSeries.length">
+      <h2>popular series</h2>
+      <div class="content-list">
+        <template x-for="s in popularSeries">
+          <button @click="openDetails(s)" class="content-card">
+            <div class="content-card-img-container">
+              <img x-bind:src="s.poster">
+            </div>
+            <div class="content-card-title" x-text="s.name"></div>
+          </button>
+        </template>
+      </div>
+    </div>
+    <div x-show="popularMovies.length">
+      <h2>popular movies</h2>
+      <div class="content-list">
+        <template x-for="m in popularMovies">
+          <button @click="openDetails(m)" class="content-card">
+            <div class="content-card-img-container">
+              <img x-bind:src="m.poster">
+            </div>
+            <div class="content-card-title" x-text="m.name"></div>
+          </button>
+        </template>
+      </div>
+    </div>
   </div>
   <style>
     body {
@@ -99,7 +125,8 @@
         position: relative;
         padding: 10px;
         height: 100%;
-        flex: 0 0 270px;
+        flex: 0 0 240px;
+        width: 240px;
         display: flex;
         flex-direction: column;
         text-align: center;
@@ -130,7 +157,7 @@
     }
 
     .content-card-img-container img {
-        object-fit: cover;
+        width: 100%;
     }
   </style>
   <script>
@@ -138,7 +165,9 @@
         Alpine.data('search', () => ({
             query: '',
             movies: [],
+            popularMovies: [],
             series: [],
+            popularSeries: [],
             recent: [],
             searching: false,
 
@@ -148,6 +177,10 @@
 
                 if (this.query.length >= 3) {
                     this.search()
+                } else {
+                    this.fetchPopularMovies()
+                    this.fetchPopularSeries()
+                    this.fetchRecent()
                 }
 
                 // window.addEventListener('popstate', () => {
@@ -213,6 +246,22 @@
                 if (this.query.length >= 3) {
                     this.recent = this.recent.filter(r => r.name.toLowerCase().includes(this.query.toLowerCase()))
                 }
+            },
+
+            async fetchPopularMovies() {
+                const resp = await fetch('https://cinemeta-catalogs.strem.io/top/catalog/movie/top.json ')
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+                this.popularMovies = (await resp.json()).metas
+            },
+
+            async fetchPopularSeries() {
+                const resp = await fetch('https://cinemeta-catalogs.strem.io/top/catalog/series/top.json ')
+                if (!resp.ok) {
+                    throw new Error(resp.statusText)
+                }
+                this.popularSeries = (await resp.json()).metas
             },
 
             async openDetails(content) {
