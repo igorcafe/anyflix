@@ -10,16 +10,17 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"slices"
 	"strconv"
 	"time"
 
 	"github.com/igorcafe/anyflix/config"
+	"github.com/igorcafe/anyflix/db"
 	"github.com/igorcafe/anyflix/httpx"
 	"github.com/igorcafe/anyflix/meta"
 	"github.com/igorcafe/anyflix/opensubs"
 	"github.com/igorcafe/anyflix/source"
 	"github.com/igorcafe/anyflix/torrent"
+	_ "modernc.org/sqlite"
 )
 
 //go:embed www/*
@@ -70,6 +71,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = db.Init()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	host := "localhost"
 	port := 2025
 	baseURL := fmt.Sprintf("http://%s:%d", host, port)
@@ -80,14 +86,19 @@ func main() {
 	// routesMux.Handle("GET /", http.FileServer(http.Dir("./www")))
 	// _ = www
 
-	recent := []map[string]any{}
-
 	routesMux.HandleFunc("GET /api/recent", func(w http.ResponseWriter, r *http.Request) {
+		recent, err := db.ListRecent()
+		if err != nil {
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+			})
+			return
+		}
 		httpx.JSON(w, recent)
 	})
 
 	routesMux.HandleFunc("POST /api/recent", func(w http.ResponseWriter, r *http.Request) {
-		rec := map[string]any{}
+		rec := meta.Meta{}
 		err = json.NewDecoder(r.Body).Decode(&rec)
 		if err != nil {
 			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
@@ -96,24 +107,22 @@ func main() {
 			})
 		}
 
-		i := slices.IndexFunc(recent, func(rec2 map[string]any) bool {
-			return rec2["id"] == rec["id"]
-		})
-
-		if i != -1 {
-			recent = slices.Delete(recent, i, i+1)
+		err = db.AddRecent(rec)
+		if err != nil {
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+			})
 		}
-
-		temp := []map[string]any{rec}
-
-		recent = append(temp, recent...)
 	})
 
 	routesMux.HandleFunc("DELETE /api/recent/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		recent = slices.DeleteFunc(recent, func(rec map[string]any) bool {
-			return rec["id"] == id
-		})
+		err := db.DeleteRecent(id)
+		if err != nil {
+			httpx.ErrorJSON(w, httpx.ErrorJSONParams{
+				Err: err,
+			})
+		}
 	})
 
 	routesMux.HandleFunc("GET /api/meta/{type}/details/{id}", func(w http.ResponseWriter, r *http.Request) {
